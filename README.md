@@ -1,6 +1,8 @@
-# Consumer Data Analysis And Visualization
+# Dash Analytics: Consumer Data Analysis And Visualization Project
 
 This project focuses on analyzing and visualizing consumer data to derive actionable insights for businesses. By leveraging data science techniques, we aim to enhance customer relationships, optimize marketing strategies, and improve overall decision-making processes. We are using various data science tools and libraries in Python, including Pandas, NumPy, Matplotlib, Seaborn, and Plotly. The project also emphasizes the importance of data visualization in understanding complex patterns and trends in consumer behavior. We will be using machine learning algorithms for predictive analysis and customer segmentation. The final deliverable will include a comprehensive report and interactive dashboards to present the findings effectively.
+
+![Dashboard of Dash Analytics](assets/image.png)
 
 ## Team members
 
