@@ -2,7 +2,7 @@ from mongoengine import Document, EmbeddedDocument, fields
 from django.contrib.auth.models import User
 from django.db import models
 from datetime import datetime
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 
 # MongoDB Models
 class MongoUser(Document):
@@ -20,6 +20,39 @@ class MongoUser(Document):
             self.password = make_password(self.password)
         return super().save(*args, **kwargs)
     
+    # Required Django auth model methods
+    def is_authenticated(self):
+        return True
+    
+    def is_anonymous(self):
+        return False
+    
+    def get_username(self):
+        return self.username
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
+
+    @property
+    def id(self):
+        return str(self.pk)
+
+    @property
+    def is_staff(self):
+        return False
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def get_short_name(self):
+        return self.first_name
+
+    def has_perm(self, perm, obj=None):
+        return True  # Add proper permission handling if needed
+
+    def has_module_perms(self, app_label):
+        return True  # Add proper permission handling if needed
+        
     meta = {'collection': 'users', 'indexes': ['username', 'email']}
 
 class Customer(Document):
@@ -79,11 +112,11 @@ class RawDataUpload(Document):
     processed_date = fields.DateTimeField(required=False)
     meta = {'collection': 'raw_data_uploads'}
 
-# Django Models for user management
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    theme_preference = models.CharField(
-        max_length=10,
-        choices=[('light', 'Light'), ('dark', 'Dark')],
+# User Profile as MongoDB Document
+class UserProfile(Document):
+    user = fields.ReferenceField(MongoUser, required=True, unique=True)
+    theme_preference = fields.StringField(
+        choices=['light', 'dark'],
         default='light'
     )
+    meta = {'collection': 'user_profiles'}

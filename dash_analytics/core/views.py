@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib import messages
-from .models import UserProfile
-import requests
-import json
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import check_password
+from django.contrib.auth import update_session_auth_hash
+from .models import MongoUser, UserProfile
+from api.serializers.user_serializer import UserSerializer
+import jwt
+from django.conf import settings
+from datetime import datetime
 
 
 def index(request):
@@ -19,20 +21,24 @@ def index(request):
 
 @login_required
 def dashboard(request):
-    """
-    Main dashboard view
-    """
-    # Get user theme preference
-    theme = get_theme_preference(request)
+    if not request.user.is_authenticated:
+        return redirect('login')
 
-    # Context data for the dashboard
-    context = {
-        'title': 'Dashboard',
-        'active_page': 'dashboard',
-        'theme': theme
-    }
+    try:
+        # Get or create user profile
+        user_profile = UserProfile.objects.filter(user=request.user).first()
+        if not user_profile:
+            user_profile = UserProfile(user=request.user).save()
 
-    return render(request, 'core/dashboard.html', context)
+        # Add your dashboard context data here
+        context = {
+            'user': request.user,
+            'theme': user_profile.theme_preference,
+        }
+        return render(request, 'core/dashboard.html', context)
+    except Exception as e:
+        messages.error(request, f"Error loading dashboard: {str(e)}")
+        return redirect('index')
 
 
 @login_required
@@ -165,56 +171,92 @@ def data_upload(request):
 
 def signin(request):
     """
-    Sign in view
+    Sign in view using MongoUser
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
 
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                messages.info(request, f"You are now logged in as {username}.")
-                return redirect('dashboard')
-            else:
-                messages.error(request, "Invalid username or password.")
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        user = MongoUser.objects.filter(username=username).first()
+        if user and check_password(password, user.password):
+            # Update last login
+            user.last_login = datetime.utcnow()
+            user.save()
+            
+            # Generate JWT token
+            token = jwt.encode({
+                'user_id': str(user.id),
+                'username': user.username,
+                'email': user.email,
+                'exp': datetime.utcnow() + settings.JWT_EXPIRATION_DELTA
+            }, settings.SECRET_KEY, algorithm='HS256')
+            
+            # Store token in session
+            request.session['auth_token'] = token
+            messages.success(request, f"Welcome back, {username}!")
+            return redirect('dashboard')
         else:
             messages.error(request, "Invalid username or password.")
-    else:
-        form = AuthenticationForm()
-
-    return render(request, 'core/signin.html', {'form': form})
+    
+    return render(request, 'core/signin.html')
 
 
 def signup(request):
     """
-    Sign up view
+    Sign up view using MongoUser
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
 
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-
-            # Create user profile with default theme preference
-            UserProfile.objects.create(user=user, theme_preference='light')
-
-            login(request, user)
-            messages.success(
-                request, "Registration successful. You are now logged in.")
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        
+        # Check if passwords match
+        if password1 != password2:
+            messages.error(request, "Passwords do not match.")
+            return render(request, 'core/signup.html')
+            
+        # Create data dict for serializer
+        data = {
+            'username': request.POST.get('username'),
+            'email': request.POST.get('email'),
+            'password': password1  # Use password1 as the password
+        }
+        
+        serializer = UserSerializer(data=data)
+        if serializer.is_valid():
+            # Check if user already exists
+            if MongoUser.objects.filter(username=serializer.validated_data['username']).first():
+                messages.error(request, "Username already exists.")
+                return render(request, 'core/signup.html')
+            if MongoUser.objects.filter(email=serializer.validated_data['email']).first():
+                messages.error(request, "Email already exists.")
+                return render(request, 'core/signup.html')
+            
+            # Create new user
+            user = serializer.create(serializer.validated_data)
+            
+            # Generate JWT token
+            token = jwt.encode({
+                'user_id': str(user.id),
+                'username': user.username,
+                'email': user.email,
+                'exp': datetime.utcnow() + settings.JWT_EXPIRATION_DELTA
+            }, settings.SECRET_KEY, algorithm='HS256')
+            
+            # Store token in session
+            request.session['auth_token'] = token
+            messages.success(request, "Registration successful. Welcome!")
             return redirect('dashboard')
         else:
-            messages.error(request, "Invalid form submission.")
-    else:
-        form = UserCreationForm()
-
-    return render(request, 'core/signup.html', {'form': form})
+            for error in serializer.errors.values():
+                messages.error(request, error[0])
+    
+    return render(request, 'core/signup.html')
 
 
 @login_required
@@ -222,7 +264,8 @@ def logout_view(request):
     """
     Logout view
     """
-    logout(request)
+    # Clear session
+    request.session.flush()
     messages.info(request, "You have successfully logged out.")
     return redirect('signin')
 
