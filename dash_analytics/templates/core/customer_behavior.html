@@ -1,0 +1,287 @@
+{% extends "base.html" %} {% block title %}Customer Behavior Analysis - Dash
+Analytics{% endblock %} {% block content %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">
+        Customer Behavior Analysis
+    </h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Purchase Frequency Chart -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Purchase Frequency
+            </h2>
+            <div class="h-80 w-full" id="purchase-frequency-chart">
+                <div class="flex items-center justify-center h-full">
+                    <div
+                        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
+                    ></div>
+                    <span class="ml-2 text-gray-600 dark:text-gray-400"
+                        >Loading chart...</span
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Loyalty Chart -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Customer Loyalty
+            </h2>
+            <div class="h-80 w-full" id="customer-loyalty-chart">
+                <div class="flex items-center justify-center h-full">
+                    <div
+                        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
+                    ></div>
+                    <span class="ml-2 text-gray-600 dark:text-gray-400"
+                        >Loading chart...</span
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Customer Segmentation -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Customer Segmentation
+            </h2>
+            <div class="h-80 w-full" id="customer-segmentation-chart">
+                <div class="flex items-center justify-center h-full">
+                    <div
+                        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
+                    ></div>
+                    <span class="ml-2 text-gray-600 dark:text-gray-400"
+                        >Loading chart...</span
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase Time Analysis -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Purchase Time Analysis
+            </h2>
+            <div class="h-80 w-full" id="purchase-time-chart">
+                <div class="flex items-center justify-center h-full">
+                    <div
+                        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
+                    ></div>
+                    <span class="ml-2 text-gray-600 dark:text-gray-400"
+                        >Loading chart...</span
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Behavior Table -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
+            Top Customers by Purchase Value
+        </h2>
+        <div class="overflow-x-auto">
+            <table
+                class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+            >
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Customer ID
+                        </th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Name
+                        </th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Total Purchases
+                        </th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Average Order Value
+                        </th>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Loyalty Score
+                        </th>
+                    </tr>
+                </thead>
+                <tbody
+                    class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                    id="customer-behavior-table"
+                >
+                    <tr>
+                        <td
+                            colspan="5"
+                            class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
+                        >
+                            <div class="flex items-center justify-center">
+                                <div
+                                    class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"
+                                ></div>
+                                <span class="ml-2">Loading data...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Load customer behavior data with optimized fetch
+        const fetchCustomerData = async () => {
+            try {
+                // Use a timeout to simulate data loading for demonstration
+                setTimeout(() => {
+                    renderPurchaseFrequencyChart();
+                    renderCustomerLoyaltyChart();
+                    renderCustomerSegmentationChart();
+                    renderPurchaseTimeChart();
+                    renderCustomerTable();
+                }, 500);
+
+                // In a production app, you would fetch real data:
+                // const response = await fetch('/api/customer-behavior/');
+                // const data = await response.json();
+                // ... process and render data
+            } catch (error) {
+                console.error("Error fetching customer behavior data:", error);
+            }
+        };
+
+        // Simulated chart rendering functions
+        function renderPurchaseFrequencyChart() {
+            const ctx = document.getElementById("purchase-frequency-chart");
+            ctx.innerHTML = "";
+
+            // Sample chart - in a production app, use real data
+            const chart = document.createElement("div");
+            chart.className = "h-full w-full flex items-center justify-center";
+            chart.innerHTML =
+                '<p class="text-gray-600 dark:text-gray-400">Purchase Frequency Chart (Sample)</p>';
+            ctx.appendChild(chart);
+        }
+
+        function renderCustomerLoyaltyChart() {
+            const ctx = document.getElementById("customer-loyalty-chart");
+            ctx.innerHTML = "";
+
+            // Sample chart - in a production app, use real data
+            const chart = document.createElement("div");
+            chart.className = "h-full w-full flex items-center justify-center";
+            chart.innerHTML =
+                '<p class="text-gray-600 dark:text-gray-400">Customer Loyalty Chart (Sample)</p>';
+            ctx.appendChild(chart);
+        }
+
+        function renderCustomerSegmentationChart() {
+            const ctx = document.getElementById("customer-segmentation-chart");
+            ctx.innerHTML = "";
+
+            // Sample chart - in a production app, use real data
+            const chart = document.createElement("div");
+            chart.className = "h-full w-full flex items-center justify-center";
+            chart.innerHTML =
+                '<p class="text-gray-600 dark:text-gray-400">Customer Segmentation Chart (Sample)</p>';
+            ctx.appendChild(chart);
+        }
+
+        function renderPurchaseTimeChart() {
+            const ctx = document.getElementById("purchase-time-chart");
+            ctx.innerHTML = "";
+
+            // Sample chart - in a production app, use real data
+            const chart = document.createElement("div");
+            chart.className = "h-full w-full flex items-center justify-center";
+            chart.innerHTML =
+                '<p class="text-gray-600 dark:text-gray-400">Purchase Time Analysis Chart (Sample)</p>';
+            ctx.appendChild(chart);
+        }
+
+        function renderCustomerTable() {
+            const tableBody = document.getElementById(
+                "customer-behavior-table"
+            );
+            tableBody.innerHTML = "";
+
+            // Sample data - in a production app, use real data
+            const sampleData = [
+                {
+                    id: "C001",
+                    name: "John Doe",
+                    purchases: 23,
+                    avg_value: "$245.67",
+                    loyalty: "High",
+                },
+                {
+                    id: "C002",
+                    name: "Jane Smith",
+                    purchases: 18,
+                    avg_value: "$187.32",
+                    loyalty: "Medium",
+                },
+                {
+                    id: "C003",
+                    name: "Robert Brown",
+                    purchases: 34,
+                    avg_value: "$312.45",
+                    loyalty: "High",
+                },
+                {
+                    id: "C004",
+                    name: "Mary Johnson",
+                    purchases: 12,
+                    avg_value: "$156.78",
+                    loyalty: "Medium",
+                },
+                {
+                    id: "C005",
+                    name: "David Williams",
+                    purchases: 8,
+                    avg_value: "$98.45",
+                    loyalty: "Low",
+                },
+            ];
+
+            sampleData.forEach((customer) => {
+                const row = document.createElement("tr");
+                row.className = "hover:bg-gray-100 dark:hover:bg-gray-700";
+
+                row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.purchases}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.avg_value}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.loyalty}</td>
+            `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Load data
+        fetchCustomerData();
+    });
+</script>
+{% endblock %} {% endblock %}

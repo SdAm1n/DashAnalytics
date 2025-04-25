@@ -1,37 +1,155 @@
 # Dash Analytics: Consumer Data Analysis And Visualization Project
 
-This project focuses on analyzing and visualizing consumer data to derive actionable insights for businesses. By leveraging data science techniques, we aim to enhance customer relationships, optimize marketing strategies, and improve overall decision-making processes. We are using various data science tools and libraries in Python, including Pandas, NumPy, Matplotlib, Seaborn, and Plotly. The project also emphasizes the importance of data visualization in understanding complex patterns and trends in consumer behavior. We will be using machine learning algorithms for predictive analysis and customer segmentation. The final deliverable will include a comprehensive report and interactive dashboards to present the findings effectively.
+A comprehensive data analytics and visualization platform built with Django and MongoDB, featuring real-time dashboards, predictive analytics, and customer behavior insights.
 
 ![Dashboard of Dash Analytics](assets/image.png)
 
-## Team members
+## Features
 
-* Nusrat Jahan Sumaiya-22234103100
-* Sadikul Amin Sadman-22234103128
-* Md. Faiyazur Rahman-22234103093
-* Md. Khairul Bashar Hasib-22234103102
-* Rakibul Hasan Rakib-22234103096
+- 📊 Interactive Dashboards
+- 📈 Sales Trend Analysis
+- 👥 Customer Behavior Analytics
+- 🌍 Geographical Insights
+- 📱 Responsive Design
+- 🌓 Dark/Light Theme
+- 📊 Data Upload & Management
+- 🤖 ML-Powered Predictions
 
-## 1.1 Introduction
+## Tech Stack
 
-Organizations need a comprehensive understanding of consumer behavior in today's competitive market to optimize their strategies and improve decision-making. This project leverages data science techniques and visualization tools to transform consumer data into actionable insights, enabling businesses to enhance customer relationships, personalize marketing efforts, and optimize operations.
+- **Backend**: Django 4.2, Django REST Framework
+- **Database**: MongoDB 8.0+ with MongoEngine
+- **Frontend**: TailwindCSS 3.6+, Chart.js
+- **Data Analysis**: Pandas 2.0+, NumPy 1.24+, Scikit-learn 1.3+
+- **ML Models**: Prophet 1.1+
 
-## 1.2 Problem Statement
+## Prerequisites
 
-Despite the availability of vast amounts of consumer data, businesses face challenges in:
-Extracting actionable insights from unstructured data.
-Visualizing complex patterns and trends in customer behavior.
-Integrating data across multiple channels for a unified view.
-Personalizing customer interactions and optimizing campaigns.
+- Python 3.12+
+- MongoDB 8.0+
+- Node.js 18+ (for TailwindCSS)
+- Git
 
-## 1.3 Motivation
+## Installation
 
-This project is motivated by the growing importance of data-driven decision-making and the limitations of manual systems. By addressing these challenges, businesses can unlock the potential of their data, improve operational efficiency, and enhance customer satisfaction.
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd DashAnalytics
+```
 
-## 1.4 Objective of the Project
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-The primary objectives include:
-Aggregating data from multiple sources.
-Conducting customer segmentation and profiling.
-Performing predictive analysis for decision-making.
-Visualizing insights through interactive dashboards.
+3. Install dependencies:
+```bash
+pip install -r dash_analytics/requirements.txt
+```
+
+4. Set up environment variables:
+Create a .env file in the project root with:
+```
+DEBUG=True
+SECRET_KEY=your-secret-key
+MONGODB_URI=mongodb://localhost:27017/dashanalytics
+```
+
+5. Start MongoDB:
+   - Make sure MongoDB service is running on your system
+   - The default connection URI is: mongodb://localhost:27017/dashanalytics
+   - You can change this in the .env file if needed
+
+6. Initialize TailwindCSS:
+```bash 
+python manage.py tailwind install
+python manage.py tailwind start
+```
+
+7. Run migrations:
+```bash
+python manage.py migrate
+```
+
+8. Create a superuser (admin):
+```bash
+python manage.py createsuperuser
+```
+
+9. Start the development server:
+```bash
+python manage.py runserver
+```
+
+The application will be available at:
+- Main application: http://localhost:8000
+- Admin interface: http://localhost:8000/admin
+- API endpoints: http://localhost:8000/api/
+
+## Project Structure
+
+- `analytics/` - Data analysis and ML model endpoints
+- `api/` - REST API implementation
+- `core/` - Main application logic
+- `dataset/` - Sample data and datasets
+- `data_analysis_ml_code/` - Jupyter notebooks and ML scripts
+- `templates/` - Frontend templates
+- `static/` - Static assets
+
+## Team Members
+
+* Nusrat Jahan Sumaiya - 22234103100
+* Sadikul Amin Sadman - 22234103128
+* Md. Faiyazur Rahman - 22234103093
+* Md. Khairul Bashar Hasib - 22234103102
+* Rakibul Hasan Rakib - 22234103096
+
+## Features in Detail
+
+### Data Analytics
+- Sales performance tracking
+- Customer segmentation
+- Product performance analysis
+- Geographical distribution analysis
+
+### Predictive Analytics
+- Sales forecasting
+- Customer churn prediction
+- Product demand prediction
+- Trend analysis
+
+### Visualization
+- Interactive charts and graphs
+- Real-time data updates
+- Custom date range filters
+- Export capabilities
+
+### Data Management
+- CSV data import through web interface
+- Automatic data validation and cleaning
+- Historical data tracking with MongoDB
+- Automated backup and restore features
+- Sample dataset included in /dataset directory
+
+## API Documentation
+
+The REST API is available at `/api/` with the following endpoints:
+- `/api/customers/` - Customer data management
+- `/api/products/` - Product information
+- `/api/orders/` - Order processing and history
+- `/api/analysis/` - Analytics results
+- `/api/predictions/` - ML model predictions
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
+
+## License
+
+This project is licensed under the MIT License.
