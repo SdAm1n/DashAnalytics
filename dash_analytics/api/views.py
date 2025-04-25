@@ -658,10 +658,12 @@ class AnalyticsViewSet(viewsets.ViewSet):
         # Get total orders
         total_orders = Order.objects.count()
 
+        from django.db.models import Sum
+
         # Get total revenue
-        total_revenue = Order.objects.aggregate(
-            total={"$sum": "$total_amount"})
-        total_revenue = total_revenue.get('total', 0)
+        total_revenue_agg = Order.objects.aggregate(total=Sum('total_amount'))
+
+        total_revenue = total_revenue_agg.get('total', 0)
 
         # Get recent orders (last 5)
         recent_orders = Order.objects.order_by('-order_date')[:5]
@@ -786,7 +788,6 @@ class DataUploadViewSet(viewsets.ViewSet):
 
         # Code to process the CSV file and populate the database
         # This will be implemented in a separate data processing service
-
         # Update the upload record
         upload.processed = True
         upload.processed_date = datetime.datetime.now()
