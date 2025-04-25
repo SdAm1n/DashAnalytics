@@ -244,9 +244,49 @@
 
             // Show processing modal
             processingModal.classList.remove("hidden");
+            progressBar.style.width = "0%";
+            progressText.textContent = "Uploading file...";
 
-            // Upload the file
-            uploadFile(formData);
+            // Make the actual API call
+            fetch('/api/data-uploads/upload_csv/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        if (data.error && data.upload_date) {
+                            // This is a duplicate file error with details
+                            showAlert(data.error, 'error', {
+                                upload_date: data.upload_date,
+                                file_name: data.file_name
+                            });
+                        } else {
+                            throw new Error(data.error || 'Upload failed');
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                processingModal.classList.add('hidden');
+                if (data.error) {
+                    showAlert(data.error, 'error');
+                } else {
+                    showAlert(data.message + (data.successful_records ? ` (${data.successful_records} records processed)` : ''), 'success');
+                    uploadForm.reset();
+                    fileNameDisplay.textContent = 'Choose file...';
+                    loadPreviousUploads();
+                }
+            })
+            .catch(error => {
+                processingModal.classList.add('hidden');
+                showAlert('Error uploading file: ' + error.message, 'error');
+            });
         });
 
         // Sample download link
@@ -266,7 +306,7 @@
         });
 
         // Function to show alert messages
-        function showAlert(message, type = "success") {
+        function showAlert(message, type = "success", details = null) {
             uploadStatus.classList.remove("hidden");
 
             let bgColor, textColor, icon;
@@ -302,6 +342,17 @@
                     ? "yellow"
                     : "blue"
             }-400 p-4 mb-6`;
+            
+            let detailsHtml = '';
+            if (details) {
+                detailsHtml = `<div class="mt-2">
+                    <p class="text-sm ${textColor}">
+                        Previously uploaded on: ${new Date(details.upload_date).toLocaleString()}<br>
+                        File name: ${details.file_name}
+                    </p>
+                </div>`;
+            }
+
             uploadStatus.innerHTML = `
                 <div class="flex">
                     <div class="flex-shrink-0">
@@ -309,11 +360,12 @@
                     </div>
                     <div class="ml-3">
                         <p class="text-sm ${textColor}">${message}</p>
+                        ${detailsHtml}
                     </div>
                 </div>
             `;
 
-            // Auto-hide after 5 seconds for success messages
+            // Auto-hide after 5 seconds for success messages only
             if (type === "success") {
                 setTimeout(() => {
                     uploadStatus.classList.add("hidden");
@@ -360,30 +412,6 @@
                     }, 500);
                 }
             }, 200);
-
-            // In a real implementation, we would do something like this:
-            /*
-            fetch('/api/data-uploads/upload_csv/', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                processingModal.classList.add('hidden');
-                if (data.error) {
-                    showAlert(data.error, 'error');
-                } else {
-                    showAlert('File uploaded successfully!', 'success');
-                    uploadForm.reset();
-                    fileNameDisplay.textContent = 'Choose file...';
-                    loadPreviousUploads();
-                }
-            })
-            .catch(error => {
-                processingModal.classList.add('hidden');
-                showAlert('Error uploading file: ' + error, 'error');
-            });
-            */
         }
 
         // Function to download sample template
@@ -398,7 +426,6 @@
 
         // Load previous uploads
         function loadPreviousUploads() {
-            // In a real implementation, this would be an API call
             fetch("/api/data-uploads/")
                 .then((response) => response.json())
                 .then((data) => {
@@ -406,38 +433,7 @@
                 })
                 .catch((error) => {
                     console.error("Error loading previous uploads:", error);
-
-                    // Fallback to sample data
-                    const sampleData = [
-                        {
-                            id: "1",
-                            file_name: "retail_data_2023_q1.csv",
-                            upload_date: "2023-06-15T10:30:00Z",
-                            file_size: 1024 * 1024 * 2.5, // 2.5 MB
-                            row_count: 5245,
-                            processed: true,
-                            processed_date: "2023-06-15T10:35:00Z",
-                        },
-                        {
-                            id: "2",
-                            file_name: "customer_data_update.csv",
-                            upload_date: "2023-06-10T14:15:00Z",
-                            file_size: 1024 * 1024 * 1.2, // 1.2 MB
-                            row_count: 3120,
-                            processed: true,
-                            processed_date: "2023-06-10T14:20:00Z",
-                        },
-                        {
-                            id: "3",
-                            file_name: "product_catalog_june.csv",
-                            upload_date: "2023-06-01T09:45:00Z",
-                            file_size: 1024 * 512, // 512 KB
-                            row_count: 842,
-                            processed: true,
-                            processed_date: "2023-06-01T09:48:00Z",
-                        },
-                    ];
-                    updatePreviousUploadsTable(sampleData);
+                    showAlert("Error loading previous uploads", "error");
                 });
         }
 

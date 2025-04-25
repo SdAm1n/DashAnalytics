@@ -1,8 +1,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    CustomerViewSet, ProductViewSet, OrderViewSet,
-    AnalyticsViewSet, DataUploadViewSet
+    CustomerViewSet, 
+    ProductViewSet, 
+    OrderViewSet, 
+    AnalyticsViewSet,
+    DataUploadViewSet,
+    register,
+    login,
+    logout
 )
 
 router = DefaultRouter()
@@ -14,4 +20,7 @@ router.register(r'data-uploads', DataUploadViewSet, basename='data-upload')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('auth/register/', register, name='register'),
+    path('auth/login/', login, name='login'),
+    path('auth/logout/', logout, name='logout'),
 ]
