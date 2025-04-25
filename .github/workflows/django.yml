@@ -41,4 +41,5 @@ jobs:
     
     - name: Run Tests
       run: |
+        cd dash_analytics
         python manage.py test
