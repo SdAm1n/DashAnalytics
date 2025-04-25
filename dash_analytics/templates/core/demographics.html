@@ -1,0 +1,685 @@
+{% extends "base.html" %} {% block title %}Customer Demographics -
+DashAnalytics{% endblock %} {% block content %}
+<div class="mb-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+            Customer Demographics
+        </h2>
+
+        <div class="flex flex-wrap mb-6">
+            <!-- Time Period Filter -->
+            <div class="w-full md:w-1/4 mb-4 md:mb-0 md:mr-4">
+                <label
+                    for="period-select"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Time Period</label
+                >
+                <select
+                    id="period-select"
+                    class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
+                >
+                    <option value="last-month">Last Month</option>
+                    <option value="last-quarter">Last Quarter</option>
+                    <option value="last-year" selected>Last Year</option>
+                    <option value="all-time">All Time</option>
+                </select>
+            </div>
+
+            <!-- Customer Segment Filter -->
+            <div class="w-full md:w-1/4 mb-4 md:mb-0 md:mr-4">
+                <label
+                    for="segment-select"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Customer Segment</label
+                >
+                <select
+                    id="segment-select"
+                    class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
+                >
+                    <option value="all" selected>All Segments</option>
+                    <option value="new">New Customers</option>
+                    <option value="returning">Returning Customers</option>
+                    <option value="vip">VIP Customers</option>
+                </select>
+            </div>
+
+            <!-- Apply Filters Button -->
+            <div class="w-full md:w-auto self-end mb-4 md:mb-0">
+                <button
+                    id="apply-filters"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition"
+                >
+                    Apply Filters
+                </button>
+                <button
+                    id="reset-filters"
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition ml-2"
+                >
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Age Distribution -->
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        Customer Age Distribution
+    </h3>
+    <div class="h-80">
+        <canvas id="ageDistributionChart"></canvas>
+    </div>
+</div>
+
+<!-- Gender and Income Distribution -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Gender Distribution
+        </h3>
+        <div class="h-64">
+            <canvas id="genderChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Income Level Distribution
+        </h3>
+        <div class="h-64">
+            <canvas id="incomeChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Education and Occupation -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Education Level
+        </h3>
+        <div class="h-64">
+            <canvas id="educationChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Occupation Distribution
+        </h3>
+        <div class="h-64">
+            <canvas id="occupationChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Lifecycle -->
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        Customer Lifecycle Status
+    </h3>
+    <div class="h-64">
+        <canvas id="lifecycleChart"></canvas>
+    </div>
+</div>
+
+{% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Charts objects
+    let ageDistributionChart,
+        genderChart,
+        incomeChart,
+        educationChart,
+        occupationChart,
+        lifecycleChart;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // Load initial data
+        setTimeout(() => {
+            fetchDemographicsData();
+        }, 100);
+
+        // Set up event listeners
+        document
+            .getElementById("apply-filters")
+            .addEventListener("click", function () {
+                showLoading();
+                setTimeout(fetchDemographicsData, 100);
+            });
+
+        document
+            .getElementById("reset-filters")
+            .addEventListener("click", function () {
+                document.getElementById("period-select").value = "last-year";
+                document.getElementById("segment-select").value = "all";
+                showLoading();
+                setTimeout(fetchDemographicsData, 100);
+            });
+    });
+
+    function showLoading() {
+        // Add loading overlay to charts
+        const chartContainers = document.querySelectorAll(".h-64, .h-80");
+        chartContainers.forEach((container) => {
+            if (!container.querySelector(".loading-overlay")) {
+                const overlay = document.createElement("div");
+                overlay.className =
+                    "loading-overlay absolute inset-0 bg-white bg-opacity-75 dark:bg-gray-800 dark:bg-opacity-75 flex items-center justify-center";
+                overlay.innerHTML = '<div class="spinner"></div>';
+                container.style.position = "relative";
+                container.appendChild(overlay);
+            }
+        });
+    }
+
+    function hideLoading() {
+        // Remove loading overlays
+        document.querySelectorAll(".loading-overlay").forEach((overlay) => {
+            overlay.remove();
+        });
+    }
+
+    function fetchDemographicsData() {
+        showLoading();
+
+        const period = document.getElementById("period-select").value;
+        const segment = document.getElementById("segment-select").value;
+
+        // In a real app, this would be an API call
+        // fetch(`/api/demographics?period=${period}&segment=${segment}`)
+
+        setTimeout(() => {
+            try {
+                // Generate mock data
+                const ageData = generateAgeDistributionData();
+                const genderData = generateGenderData();
+                const incomeData = generateIncomeData();
+                const educationData = generateEducationData();
+                const occupationData = generateOccupationData();
+                const lifecycleData = generateLifecycleData();
+
+                // Render charts one by one with small delays to prevent UI freeze
+                setTimeout(() => {
+                    renderAgeDistributionChart(ageData);
+
+                    setTimeout(() => {
+                        renderGenderChart(genderData);
+
+                        setTimeout(() => {
+                            renderIncomeChart(incomeData);
+
+                            setTimeout(() => {
+                                renderEducationChart(educationData);
+
+                                setTimeout(() => {
+                                    renderOccupationChart(occupationData);
+
+                                    setTimeout(() => {
+                                        renderLifecycleChart(lifecycleData);
+                                        hideLoading();
+                                    }, 50);
+                                }, 50);
+                            }, 50);
+                        }, 50);
+                    }, 50);
+                }, 50);
+            } catch (error) {
+                console.error("Error rendering charts:", error);
+                hideLoading();
+                alert(
+                    "There was an error loading the demographics data. Please try again."
+                );
+            }
+        }, 300);
+    }
+
+    // Data generator functions
+    function generateAgeDistributionData() {
+        return {
+            labels: ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"],
+            data: [15, 30, 25, 15, 10, 5],
+        };
+    }
+
+    function generateGenderData() {
+        return {
+            labels: ["Male", "Female", "Non-binary", "Prefer not to say"],
+            data: [48, 46, 4, 2],
+        };
+    }
+
+    function generateIncomeData() {
+        return {
+            labels: [
+                "< $25k",
+                "$25k-$50k",
+                "$50k-$75k",
+                "$75k-$100k",
+                "$100k+",
+            ],
+            data: [10, 20, 35, 25, 10],
+        };
+    }
+
+    function generateEducationData() {
+        return {
+            labels: [
+                "High School",
+                "Associate",
+                "Bachelor's",
+                "Master's",
+                "Doctorate",
+            ],
+            data: [20, 15, 40, 20, 5],
+        };
+    }
+
+    function generateOccupationData() {
+        return {
+            labels: [
+                "Professional",
+                "Service",
+                "Technical",
+                "Student",
+                "Retired",
+                "Other",
+            ],
+            data: [30, 25, 20, 10, 10, 5],
+        };
+    }
+
+    function generateLifecycleData() {
+        return {
+            labels: ["New", "Active", "At Risk", "Churned", "Reactivated"],
+            data: [20, 45, 15, 12, 8],
+        };
+    }
+
+    // Chart rendering functions
+    function renderAgeDistributionChart(data) {
+        const ctx = document
+            .getElementById("ageDistributionChart")
+            .getContext("2d");
+
+        if (ageDistributionChart) {
+            ageDistributionChart.destroy();
+        }
+
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const gridColor = isDarkMode
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)";
+        const textColor = isDarkMode ? "#e5e7eb" : "#374151";
+
+        requestAnimationFrame(() => {
+            ageDistributionChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: "Percentage of Customers",
+                            data: data.data,
+                            backgroundColor: "rgba(59, 130, 246, 0.6)",
+                            borderColor: "#3b82f6",
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 300,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: textColor,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: gridColor,
+                            },
+                            ticks: {
+                                color: textColor,
+                            },
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                            },
+                            ticks: {
+                                color: textColor,
+                                callback: function (value) {
+                                    return value + "%";
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        });
+    }
+
+    function renderGenderChart(data) {
+        const ctx = document.getElementById("genderChart").getContext("2d");
+
+        if (genderChart) {
+            genderChart.destroy();
+        }
+
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const textColor = isDarkMode ? "#e5e7eb" : "#374151";
+
+        requestAnimationFrame(() => {
+            genderChart = new Chart(ctx, {
+                type: "pie",
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            data: data.data,
+                            backgroundColor: [
+                                "#3b82f6",
+                                "#ec4899",
+                                "#8b5cf6",
+                                "#6b7280",
+                            ],
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 300,
+                    },
+                    plugins: {
+                        legend: {
+                            position: "right",
+                            labels: {
+                                color: textColor,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw}%`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        });
+    }
+
+    function renderIncomeChart(data) {
+        const ctx = document.getElementById("incomeChart").getContext("2d");
+
+        if (incomeChart) {
+            incomeChart.destroy();
+        }
+
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const gridColor = isDarkMode
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)";
+        const textColor = isDarkMode ? "#e5e7eb" : "#374151";
+
+        requestAnimationFrame(() => {
+            incomeChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: "Percentage of Customers",
+                            data: data.data,
+                            backgroundColor: "rgba(16, 185, 129, 0.6)",
+                            borderColor: "#10b981",
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: "y",
+                    animation: {
+                        duration: 300,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: textColor,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                            },
+                            ticks: {
+                                color: textColor,
+                                callback: function (value) {
+                                    return value + "%";
+                                },
+                            },
+                        },
+                        y: {
+                            grid: {
+                                color: gridColor,
+                            },
+                            ticks: {
+                                color: textColor,
+                            },
+                        },
+                    },
+                },
+            });
+        });
+    }
+
+    function renderEducationChart(data) {
+        const ctx = document.getElementById("educationChart").getContext("2d");
+
+        if (educationChart) {
+            educationChart.destroy();
+        }
+
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const textColor = isDarkMode ? "#e5e7eb" : "#374151";
+
+        requestAnimationFrame(() => {
+            educationChart = new Chart(ctx, {
+                type: "doughnut",
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            data: data.data,
+                            backgroundColor: [
+                                "#3b82f6",
+                                "#f59e0b",
+                                "#10b981",
+                                "#8b5cf6",
+                                "#ef4444",
+                            ],
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 300,
+                    },
+                    plugins: {
+                        legend: {
+                            position: "right",
+                            labels: {
+                                color: textColor,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw}%`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        });
+    }
+
+    function renderOccupationChart(data) {
+        const ctx = document.getElementById("occupationChart").getContext("2d");
+
+        if (occupationChart) {
+            occupationChart.destroy();
+        }
+
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const gridColor = isDarkMode
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)";
+        const textColor = isDarkMode ? "#e5e7eb" : "#374151";
+
+        requestAnimationFrame(() => {
+            occupationChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: "Percentage of Customers",
+                            data: data.data,
+                            backgroundColor: "rgba(139, 92, 246, 0.6)",
+                            borderColor: "#8b5cf6",
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: "y",
+                    animation: {
+                        duration: 300,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: textColor,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                            },
+                            ticks: {
+                                color: textColor,
+                                callback: function (value) {
+                                    return value + "%";
+                                },
+                            },
+                        },
+                        y: {
+                            grid: {
+                                color: gridColor,
+                            },
+                            ticks: {
+                                color: textColor,
+                            },
+                        },
+                    },
+                },
+            });
+        });
+    }
+
+    function renderLifecycleChart(data) {
+        const ctx = document.getElementById("lifecycleChart").getContext("2d");
+
+        if (lifecycleChart) {
+            lifecycleChart.destroy();
+        }
+
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const textColor = isDarkMode ? "#e5e7eb" : "#374151";
+
+        requestAnimationFrame(() => {
+            lifecycleChart = new Chart(ctx, {
+                type: "polarArea",
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            data: data.data,
+                            backgroundColor: [
+                                "rgba(59, 130, 246, 0.6)",
+                                "rgba(16, 185, 129, 0.6)",
+                                "rgba(245, 158, 11, 0.6)",
+                                "rgba(239, 68, 68, 0.6)",
+                                "rgba(139, 92, 246, 0.6)",
+                            ],
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 300,
+                    },
+                    plugins: {
+                        legend: {
+                            position: "right",
+                            labels: {
+                                color: textColor,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw}%`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        });
+    }
+
+    // Update charts when theme changes
+    document.addEventListener("theme-changed", function () {
+        if (ageDistributionChart) {
+            showLoading();
+            setTimeout(fetchDemographicsData, 100);
+        }
+    });
+</script>
+{% endblock %}

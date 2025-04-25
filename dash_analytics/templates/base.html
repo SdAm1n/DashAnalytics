@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en" class="{% if theme == 'dark' %}dark{% endif %}">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{% block title %}Dash Analytics{% endblock %}</title>
+
+        <!-- Tailwind CSS with dark mode support -->
+        <link
+            href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+            rel="stylesheet"
+        />
+
+        <!-- Font Awesome -->
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/static/css/style.css" />
+
+        <!-- Theme specific styling -->
+        <style>
+            :root {
+                --bg-primary: {% if theme == 'dark' %}#1a1a1a{% else %}#ffffff{% endif %};
+                --bg-secondary: {% if theme == 'dark' %}#2d3748{% else %}#f7fafc{% endif %};
+                --text-primary: {% if theme == 'dark' %}#ffffff{% else %}#2d3748{% endif %};
+                --text-secondary: {% if theme == 'dark' %}#cbd5e0{% else %}#4a5568{% endif %};
+                --accent-color: #3b82f6;
+            }
+
+            body {
+                background-color: var(--bg-primary);
+                color: var(--text-primary);
+                transition: background-color 0.3s, color 0.3s;
+            }
+
+            .sidebar {
+                background-color: var(--bg-secondary);
+                transition: transform 0.3s ease;
+            }
+
+            .card {
+                background-color: var(--bg-secondary);
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+
+            @media (max-width: 768px) {
+                .sidebar {
+                    position: fixed;
+                    z-index: 50;
+                    height: 100vh;
+                    transform: translateX(-100%);
+                }
+
+                .sidebar.open {
+                    transform: translateX(0);
+                }
+            }
+        </style>
+
+        {% block extra_head %}{% endblock %}
+    </head>
+    <body>
+        <div class="flex h-screen overflow-hidden">
+            <!-- Sidebar -->
+            {% if user.is_authenticated %}
+            <div id="sidebar" class="sidebar w-64 shadow-xl">
+                <div
+                    class="flex items-center justify-between h-16 border-b px-4"
+                >
+                    <h1 class="text-2xl font-bold">Dash Analytics</h1>
+                    <button
+                        id="closeSidebar"
+                        class="md:hidden text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <nav class="mt-8">
+                    <div class="px-4">
+                        <a
+                            href="{% url 'dashboard' %}"
+                            class="flex items-center py-2 px-4 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'dashboard' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-tachometer-alt mr-3"></i>
+                            <span>Dashboard</span>
+                        </a>
+
+                        <a
+                            href="{% url 'sales_trend' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'sales_trend' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-chart-line mr-3"></i>
+                            <span>Sales Trend</span>
+                        </a>
+
+                        <a
+                            href="{% url 'product_performance' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'product_performance' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-box mr-3"></i>
+                            <span>Product Performance</span>
+                        </a>
+
+                        <a
+                            href="{% url 'demographics' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'demographics' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-users mr-3"></i>
+                            <span>Demographics</span>
+                        </a>
+
+                        <a
+                            href="{% url 'geographical_insights' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'geographical_insights' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-globe mr-3"></i>
+                            <span>Geographical Insights</span>
+                        </a>
+
+                        <a
+                            href="{% url 'customer_behavior' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'customer_behavior' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-user-check mr-3"></i>
+                            <span>Customer Behavior</span>
+                        </a>
+
+                        <a
+                            href="{% url 'prediction' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'prediction' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-brain mr-3"></i>
+                            <span>Prediction</span>
+                        </a>
+
+                        <a
+                            href="{% url 'data_upload' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'data_upload' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-upload mr-3"></i>
+                            <span>Data Upload</span>
+                        </a>
+                    </div>
+
+                    <div class="px-4 mt-8 border-t pt-4">
+                        <a
+                            href="{% url 'profile' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200 {% if active_page == 'profile' %}bg-blue-500 text-white{% endif %}"
+                        >
+                            <i class="fas fa-user-cog mr-3"></i>
+                            <span>Profile</span>
+                        </a>
+
+                        <a
+                            href="{% url 'logout' %}"
+                            class="flex items-center py-2 px-4 mt-2 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition duration-200"
+                        >
+                            <i class="fas fa-sign-out-alt mr-3"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+            {% endif %}
+
+            <!-- Main Content -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                {% if user.is_authenticated %}
+                <header
+                    class="flex justify-between items-center p-4 border-b bg-white dark:bg-gray-800 shadow-sm"
+                >
+                    <div class="flex items-center">
+                        <!-- Mobile menu button -->
+                        <button
+                            id="openSidebar"
+                            class="md:hidden focus:outline-none mr-3"
+                        >
+                            <i class="fas fa-bars"></i>
+                        </button>
+
+                        <h1 class="text-lg font-bold">
+                            {{ title|default:"Dash Analytics" }}
+                        </h1>
+                    </div>
+
+                    <div class="flex items-center">
+                        <!-- Date Filter -->
+                        <div class="mr-4">
+                            <select
+                                class="date-filter bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="all">All Time</option>
+                                <option value="year">This Year</option>
+                                <option value="month">This Month</option>
+                                <option value="week">This Week</option>
+                            </select>
+                        </div>
+
+                        <!-- Theme Toggle -->
+                        <div class="mr-4">
+                            <form
+                                id="themeForm"
+                                method="post"
+                                action="{% url 'profile' %}"
+                            >
+                                {% csrf_token %}
+                                <input
+                                    type="hidden"
+                                    name="theme"
+                                    value="{% if theme == 'dark' %}light{% else %}dark{% endif %}"
+                                />
+                                <button
+                                    type="submit"
+                                    class="focus:outline-none text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition duration-200"
+                                >
+                                    {% if theme == 'dark' %}
+                                    <i class="fas fa-sun text-yellow-400"></i>
+                                    {% else %}
+                                    <i class="fas fa-moon text-blue-600"></i>
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- User Menu -->
+                        <div class="relative" id="userMenuContainer">
+                            <button
+                                id="userMenuButton"
+                                class="flex items-center focus:outline-none px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-200"
+                            >
+                                <span class="mr-2 hidden sm:inline"
+                                    >{{ user.username }}</span
+                                >
+                                <i class="fas fa-user-circle text-2xl"></i>
+                            </button>
+                            <div
+                                id="userMenu"
+                                class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg py-1 z-50 hidden"
+                            >
+                                <a
+                                    href="{% url 'profile' %}"
+                                    class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                    <i class="fas fa-user-cog mr-2"></i> Profile
+                                </a>
+                                <a
+                                    href="{% url 'logout' %}"
+                                    class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                    <i class="fas fa-sign-out-alt mr-2"></i>
+                                    Logout
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+                {% endif %}
+
+                <main
+                    class="flex-1 overflow-x-hidden overflow-y-auto p-4 bg-gray-100 dark:bg-gray-900"
+                >
+                    {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                        <div
+                            class="p-4 mb-2 {% if message.tags == 'success' %}bg-green-100 text-green-700 border-green-200{% elif message.tags == 'error' %}bg-red-100 text-red-700 border-red-200{% else %}bg-blue-100 text-blue-700 border-blue-200{% endif %} border-l-4 rounded flash-message"
+                        >
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %} {% block content %}{% endblock %}
+                </main>
+            </div>
+        </div>
+
+        <!-- JS Dependencies -->
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+
+        <script>
+            // Date filter functionality
+            document
+                .querySelector(".date-filter")
+                ?.addEventListener("change", function () {
+                    const selectedPeriod = this.value;
+                    console.log("Selected period:", selectedPeriod);
+
+                    // Call API with the selected period and update charts
+                    if (typeof updateChartsWithPeriod === "function") {
+                        updateChartsWithPeriod(selectedPeriod);
+                    }
+                });
+
+            // Theme toggle with AJAX
+            document
+                .getElementById("themeForm")
+                ?.addEventListener("submit", function (e) {
+                    e.preventDefault();
+
+                    const form = this;
+                    const formData = new FormData(form);
+                    const themeValue = formData.get("theme");
+
+                    // Update icon immediately for better UX
+                    const themeButton = form.querySelector("button");
+                    if (themeValue === "light") {
+                        themeButton.innerHTML =
+                            '<i class="fas fa-moon text-blue-600"></i>';
+                        document.documentElement.classList.remove("dark");
+                    } else {
+                        themeButton.innerHTML =
+                            '<i class="fas fa-sun text-yellow-400"></i>';
+                        document.documentElement.classList.add("dark");
+                    }
+
+                    // Update hidden input value for next toggle
+                    form.querySelector('input[name="theme"]').value =
+                        themeValue === "light" ? "dark" : "light";
+
+                    // Get the CSRF token
+                    const csrfToken = form.querySelector(
+                        'input[name="csrfmiddlewaretoken"]'
+                    ).value;
+
+                    // Send AJAX request to update theme
+                    fetch(form.action, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": csrfToken,
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: new URLSearchParams(formData),
+                    })
+                        .then((response) => {
+                            if (response.ok) {
+                                // Apply theme changes without page reload
+                                if (themeValue === "dark") {
+                                    document.documentElement.style.setProperty(
+                                        "--bg-primary",
+                                        "#1a1a1a"
+                                    );
+                                    document.documentElement.style.setProperty(
+                                        "--bg-secondary",
+                                        "#2d3748"
+                                    );
+                                    document.documentElement.style.setProperty(
+                                        "--text-primary",
+                                        "#ffffff"
+                                    );
+                                    document.documentElement.style.setProperty(
+                                        "--text-secondary",
+                                        "#cbd5e0"
+                                    );
+                                } else {
+                                    document.documentElement.style.setProperty(
+                                        "--bg-primary",
+                                        "#ffffff"
+                                    );
+                                    document.documentElement.style.setProperty(
+                                        "--bg-secondary",
+                                        "#f7fafc"
+                                    );
+                                    document.documentElement.style.setProperty(
+                                        "--text-primary",
+                                        "#2d3748"
+                                    );
+                                    document.documentElement.style.setProperty(
+                                        "--text-secondary",
+                                        "#4a5568"
+                                    );
+                                }
+                            }
+                        })
+                        .catch((error) => {
+                            console.error("Error toggling theme:", error);
+                        });
+                });
+
+            // Mobile menu toggle
+            document
+                .getElementById("openSidebar")
+                ?.addEventListener("click", function () {
+                    const sidebar = document.getElementById("sidebar");
+                    sidebar.classList.add("open");
+                });
+
+            document
+                .getElementById("closeSidebar")
+                ?.addEventListener("click", function () {
+                    const sidebar = document.getElementById("sidebar");
+                    sidebar.classList.remove("open");
+                });
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener("click", function (event) {
+                const sidebar = document.getElementById("sidebar");
+                const openButton = document.getElementById("openSidebar");
+
+                if (
+                    sidebar &&
+                    openButton &&
+                    !sidebar.contains(event.target) &&
+                    event.target !== openButton &&
+                    window.innerWidth < 768 &&
+                    sidebar.classList.contains("open")
+                ) {
+                    sidebar.classList.remove("open");
+                }
+            });
+
+            // User menu toggle
+            document
+                .getElementById("userMenuButton")
+                ?.addEventListener("click", function () {
+                    const userMenu = document.getElementById("userMenu");
+                    userMenu.classList.toggle("hidden");
+                });
+
+            // Hide user menu when clicking outside
+            document.addEventListener("click", function (event) {
+                const userMenu = document.getElementById("userMenu");
+                const userMenuButton =
+                    document.getElementById("userMenuButton");
+
+                if (
+                    userMenu &&
+                    userMenuButton &&
+                    !userMenu.contains(event.target) &&
+                    event.target !== userMenuButton &&
+                    !userMenuButton.contains(event.target) &&
+                    !userMenu.classList.contains("hidden")
+                ) {
+                    userMenu.classList.add("hidden");
+                }
+            });
+
+            // Auto-hide flash messages after 5 seconds
+            document.addEventListener("DOMContentLoaded", function () {
+                const flashMessages =
+                    document.querySelectorAll(".flash-message");
+                flashMessages.forEach(function (message) {
+                    setTimeout(function () {
+                        message.style.opacity = "0";
+                        setTimeout(function () {
+                            message.remove();
+                        }, 300);
+                    }, 5000);
+                });
+            });
+        </script>
+
+        {% block extra_js %}{% endblock %}
+    </body>
+</html>

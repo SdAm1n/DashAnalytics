@@ -1,0 +1,103 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
+        Product Sales Prediction
+    </h1>
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
+        <form id="prediction-form" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label
+                        for="product"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >Product</label
+                    >
+                    <input
+                        type="text"
+                        id="product"
+                        name="product"
+                        required
+                        class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
+                    />
+                </div>
+                <div>
+                    <label
+                        for="period"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >Period</label
+                    >
+                    <select
+                        id="period"
+                        name="period"
+                        required
+                        class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
+                    >
+                        <option value="week">Next Week</option>
+                        <option value="month">Next Month</option>
+                        <option value="quarter">Next Quarter</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <button
+                    type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition"
+                >
+                    Predict
+                </button>
+            </div>
+        </form>
+    </div>
+    <div
+        id="prediction-result"
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 hidden"
+    >
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
+            Prediction Result
+        </h2>
+        <div id="result-content" class="text-gray-800 dark:text-gray-200"></div>
+    </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+    document
+        .getElementById("prediction-form")
+        .addEventListener("submit", function (e) {
+            e.preventDefault();
+            const product = document.getElementById("product").value;
+            const period = document.getElementById("period").value;
+            const resultDiv = document.getElementById("prediction-result");
+            const resultContent = document.getElementById("result-content");
+            resultDiv.classList.add("hidden");
+            resultContent.innerHTML =
+                '<div class="flex items-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div><span class="ml-2">Predicting...</span></div>';
+            resultDiv.classList.remove("hidden");
+            fetch("/api/prediction/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken":
+                        (
+                            document.querySelector(
+                                "[name=csrfmiddlewaretoken]"
+                            ) || {}
+                        ).value || "",
+                },
+                body: JSON.stringify({ product, period }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data && data.prediction) {
+                        resultContent.innerHTML = `<p class="text-lg">Predicted sales for <span class="font-semibold">${product}</span> in the next <span class="font-semibold">${period}</span>: <span class="text-blue-600 dark:text-blue-400 font-bold">${data.prediction}</span></p>`;
+                    } else {
+                        resultContent.innerHTML =
+                            '<p class="text-red-500">No prediction available.</p>';
+                    }
+                })
+                .catch(() => {
+                    resultContent.innerHTML =
+                        '<p class="text-red-500">Prediction failed. Please try again.</p>';
+                });
+        });
+</script>
+{% endblock %}

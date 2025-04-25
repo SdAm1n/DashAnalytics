@@ -1,0 +1,194 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
+        Product Performance & Sales Trend
+    </h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <!-- Product Performance Table -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Product Performance
+            </h2>
+            <div class="overflow-x-auto">
+                <table
+                    class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+                >
+                    <thead>
+                        <tr>
+                            <th
+                                class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                            >
+                                Product
+                            </th>
+                            <th
+                                class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                            >
+                                Category
+                            </th>
+                            <th
+                                class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                            >
+                                Units Sold
+                            </th>
+                            <th
+                                class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                            >
+                                Revenue
+                            </th>
+                            <th
+                                class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                            >
+                                Orders
+                            </th>
+                            <th
+                                class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                            >
+                                Avg Price
+                            </th>
+                            <th
+                                class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                            >
+                                Rating
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody
+                        id="product-performance-table"
+                        class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                    >
+                        <tr>
+                            <td
+                                colspan="7"
+                                class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
+                            >
+                                <div class="flex items-center justify-center">
+                                    <div
+                                        class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"
+                                    ></div>
+                                    <span class="ml-2">Loading data...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Sales Trend Chart -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Sales Trend
+            </h2>
+            <canvas id="salesTrendChart" height="300"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Fetch product performance data
+        fetch("/api/products/performance/")
+            .then((response) => response.json())
+            .then((data) => renderProductPerformanceTable(data));
+
+        // Fetch sales trend data (reuse from dashboard or sales_trend)
+        fetch("/api/orders/sales_trend/")
+            .then((response) => response.json())
+            .then((data) => renderSalesTrendChart(data));
+
+        function renderProductPerformanceTable(data) {
+            const tableBody = document.getElementById(
+                "product-performance-table"
+            );
+            tableBody.innerHTML = "";
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No data available</td></tr>`;
+                return;
+            }
+            data.forEach((item) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">${
+                    item.product_name
+                }</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${
+                    item.category
+                }</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${
+                    item.total_quantity
+                }</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">$${item.total_revenue?.toLocaleString()}</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${
+                    item.orders_count
+                }</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">$${
+                    item.avg_price
+                }</td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${
+                    item.rating ?? "-"
+                }</td>
+            `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function renderSalesTrendChart(data) {
+            const ctx = document
+                .getElementById("salesTrendChart")
+                .getContext("2d");
+            const isDarkMode =
+                document.documentElement.classList.contains("dark");
+            const gridColor = isDarkMode
+                ? "rgba(255,255,255,0.1)"
+                : "rgba(0,0,0,0.05)";
+            const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+            const labels = data.map((item) => item.period);
+            const salesData = data.map((item) => item.total_sales);
+            if (window.salesTrendChart instanceof Chart) {
+                window.salesTrendChart.destroy();
+            }
+            window.salesTrendChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Total Sales",
+                            data: salesData,
+                            borderColor: "#3b82f6",
+                            backgroundColor: "rgba(59,130,246,0.1)",
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 3,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: textColor },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor },
+                        },
+                        y: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor },
+                        },
+                    },
+                },
+            });
+        }
+    });
+</script>
+{% endblock %}

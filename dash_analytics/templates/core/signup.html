@@ -1,0 +1,167 @@
+{% extends "base.html" %} 
+{# Explicit line break between template tags #} 
+{% block title %}Sign Up - Dash Analytics{% endblock %} 
+{# Explicit line break between template tags #} 
+{% block content %}
+<div
+    class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900"
+>
+    <div class="w-full max-w-md">
+        <div
+            class="bg-white dark:bg-gray-800 shadow-md rounded-lg px-8 pt-6 pb-8 mb-4"
+        >
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    Dash Analytics
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">
+                    Create a new account
+                </p>
+            </div>
+
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div
+                    class="p-3 {% if message.tags == 'success' %}bg-green-100 text-green-700 border-green-200{% else %}bg-blue-100 text-blue-700 border-blue-200{% endif %} border rounded"
+                >
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label
+                        class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2"
+                        for="id_username"
+                    >
+                        Username
+                    </label>
+                    <input
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-600 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        id="id_username"
+                        name="username"
+                        type="text"
+                        placeholder="Username"
+                        required
+                    />
+                    {% if form.username.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">
+                        {{ form.username.errors.0 }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label
+                        class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2"
+                        for="id_email"
+                    >
+                        Email (optional)
+                    </label>
+                    <input
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-600 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        id="id_email"
+                        name="email"
+                        type="email"
+                        placeholder="email@example.com"
+                    />
+                    {% if form.email.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">
+                        {{ form.email.errors.0 }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label
+                        class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2"
+                        for="id_password1"
+                    >
+                        Password
+                    </label>
+                    <input
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-600 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        id="id_password1"
+                        name="password1"
+                        type="password"
+                        placeholder="******************"
+                        required
+                    />
+                    {% if form.password1.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">
+                        {{ form.password1.errors.0 }}
+                    </p>
+                    {% else %}
+                    <p
+                        class="text-gray-500 dark:text-gray-400 text-xs italic mt-1"
+                    >
+                        Your password must contain at least 8 characters and
+                        can't be entirely numeric.
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div class="mb-6">
+                    <label
+                        class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2"
+                        for="id_password2"
+                    >
+                        Confirm Password
+                    </label>
+                    <input
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-600 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        id="id_password2"
+                        name="password2"
+                        type="password"
+                        placeholder="******************"
+                        required
+                    />
+                    {% if form.password2.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">
+                        {{ form.password2.errors.0 }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200"
+                        type="submit"
+                    >
+                        <i class="fas fa-user-plus mr-2"></i> Sign Up
+                    </button>
+                    <a
+                        class="inline-block align-baseline font-bold text-sm text-blue-600 hover:text-blue-800 transition duration-200"
+                        href="{% url 'signin' %}"
+                    >
+                        Already have an account?
+                    </a>
+                </div>
+            </form>
+
+            {% if form.non_field_errors %}
+            <div
+                class="mt-4 p-3 bg-red-100 text-red-700 border border-red-200 rounded"
+            >
+                {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="text-center mt-4">
+            <a
+                href="{% url 'index' %}"
+                class="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition duration-200"
+            >
+                <i class="fas fa-home mr-1"></i> Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

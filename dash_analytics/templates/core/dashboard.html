@@ -1,0 +1,1024 @@
+{% extends "base.html" %} 
+{% block title %}Dashboard - Dash Analytics{% endblock %} 
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Stats Cards -->
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex items-center">
+            <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                <i class="fas fa-users text-white text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h2
+                    class="text-gray-600 dark:text-gray-400 text-sm font-medium"
+                >
+                    Total Customers
+                </h2>
+                <p
+                    class="text-2xl font-bold text-gray-900 dark:text-gray-100 customers-count"
+                >
+                    <span class="loading-placeholder">--</span>
+                </p>
+            </div>
+        </div>
+        <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            <span class="customer-growth text-green-500"
+                ><i class="fas fa-arrow-up"></i> 0%</span
+            >
+            from last month
+        </div>
+    </div>
+
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex items-center">
+            <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                <i class="fas fa-box text-white text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h2
+                    class="text-gray-600 dark:text-gray-400 text-sm font-medium"
+                >
+                    Total Products
+                </h2>
+                <p
+                    class="text-2xl font-bold text-gray-900 dark:text-gray-100 products-count"
+                >
+                    <span class="loading-placeholder">--</span>
+                </p>
+            </div>
+        </div>
+        <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            <span class="product-growth text-green-500"
+                ><i class="fas fa-arrow-up"></i> 0%</span
+            >
+            from last month
+        </div>
+    </div>
+
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex items-center">
+            <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
+                <i class="fas fa-shopping-cart text-white text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h2
+                    class="text-gray-600 dark:text-gray-400 text-sm font-medium"
+                >
+                    Total Orders
+                </h2>
+                <p
+                    class="text-2xl font-bold text-gray-900 dark:text-gray-100 orders-count"
+                >
+                    <span class="loading-placeholder">--</span>
+                </p>
+            </div>
+        </div>
+        <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            <span class="orders-growth text-green-500"
+                ><i class="fas fa-arrow-up"></i> 0%</span
+            >
+            from last month
+        </div>
+    </div>
+
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex items-center">
+            <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                <i class="fas fa-dollar-sign text-white text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h2
+                    class="text-gray-600 dark:text-gray-400 text-sm font-medium"
+                >
+                    Total Revenue
+                </h2>
+                <p
+                    class="text-2xl font-bold text-gray-900 dark:text-gray-100 revenue-total"
+                >
+                    <span class="loading-placeholder">--</span>
+                </p>
+            </div>
+        </div>
+        <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            <span class="revenue-growth text-green-500"
+                ><i class="fas fa-arrow-up"></i> 0%</span
+            >
+            from last month
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-8">
+    <!-- Sales Trend Chart -->
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Sales Trend
+            </h2>
+            <div class="flex space-x-2">
+                <button
+                    class="period-button px-2 py-1 text-xs rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-600 text-white"
+                    data-period="week"
+                >
+                    Week
+                </button>
+                <button
+                    class="period-button px-2 py-1 text-xs rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                    data-period="month"
+                >
+                    Month
+                </button>
+                <button
+                    class="period-button px-2 py-1 text-xs rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                    data-period="year"
+                >
+                    Year
+                </button>
+            </div>
+        </div>
+        <div class="h-64 relative">
+            <div
+                class="absolute inset-0 flex items-center justify-center sales-chart-loader"
+            >
+                <div
+                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+                ></div>
+            </div>
+            <canvas id="salesTrendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Products Chart -->
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Top Products
+            </h2>
+            <select
+                id="topProductsLimit"
+                class="text-xs rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-blue-500 focus:border-blue-500"
+            >
+                <option value="5">Top 5</option>
+                <option value="10">Top 10</option>
+                <option value="15">Top 15</option>
+            </select>
+        </div>
+        <div class="h-64 relative">
+            <div
+                class="absolute inset-0 flex items-center justify-center products-chart-loader"
+            >
+                <div
+                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"
+                ></div>
+            </div>
+            <canvas id="topProductsChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Demographics & Geographic Insight Preview -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-8">
+    <!-- Customer Demographics Chart -->
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Customer Demographics
+            </h2>
+            <a
+                href="{% url 'demographics' %}"
+                class="text-blue-600 hover:text-blue-800 text-sm"
+            >
+                View Details
+                <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        <div class="h-64 relative">
+            <div
+                class="absolute inset-0 flex items-center justify-center demographics-chart-loader"
+            >
+                <div
+                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"
+                ></div>
+            </div>
+            <canvas id="demographicsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Geographic Insights Map -->
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Geographic Insights
+            </h2>
+            <a
+                href="{% url 'geographical_insights' %}"
+                class="text-blue-600 hover:text-blue-800 text-sm"
+            >
+                View Details
+                <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        <div
+            class="h-64 flex items-center justify-center geographic-map-container"
+        >
+            <div id="geographicMap" class="w-full h-full">
+                <div
+                    class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400"
+                >
+                    <div class="text-center">
+                        <i class="fas fa-globe text-4xl mb-2"></i>
+                        <p>
+                            Interactive map visualization available in detailed
+                            view
+                        </p>
+                        <a
+                            href="{% url 'geographical_insights' %}"
+                            class="text-blue-600 hover:text-blue-800 inline-block mt-2 px-4 py-2 rounded-lg border border-blue-600 hover:bg-blue-600 hover:text-white transition-all"
+                        >
+                            View Full Map
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders Section -->
+<div class="mt-8">
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Recent Orders
+            </h2>
+            <a href="#" class="text-blue-600 hover:text-blue-800 text-sm">
+                View All Orders
+                <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <div
+                class="orders-table-loader py-4 text-center text-gray-500 dark:text-gray-400"
+            >
+                <div
+                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"
+                ></div>
+                <p>Loading orders data...</p>
+            </div>
+            <table
+                class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+            >
+                <thead>
+                    <tr>
+                        <th
+                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Order ID
+                        </th>
+                        <th
+                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Customer
+                        </th>
+                        <th
+                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Date
+                        </th>
+                        <th
+                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Total
+                        </th>
+                        <th
+                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                        >
+                            Status
+                        </th>
+                    </tr>
+                </thead>
+                <tbody
+                    class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                    id="recentOrdersTable"
+                >
+                    <!-- Orders will be populated here -->
+                    <tr>
+                        <td
+                            class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400"
+                            colspan="5"
+                        >
+                            <div class="text-center">
+                                Loading recent orders...
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+    // Function to format currency
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: 2,
+        }).format(amount);
+    }
+
+    // Function to format date
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+        });
+    }
+
+    // Function to update growth indicators
+    function updateGrowthIndicator(element, percentage) {
+        if (percentage > 0) {
+            element.innerHTML = `<i class="fas fa-arrow-up mr-1"></i> ${percentage}%`;
+            element.className = "text-green-500";
+        } else if (percentage < 0) {
+            element.innerHTML = `<i class="fas fa-arrow-down mr-1"></i> ${Math.abs(
+                percentage
+            )}%`;
+            element.className = "text-red-500";
+        } else {
+            element.innerHTML = `<i class="fas fa-equals mr-1"></i> ${percentage}%`;
+            element.className = "text-gray-500";
+        }
+    }
+
+    // Function to update charts based on date filter
+    function updateChartsWithPeriod(period) {
+        fetchSummary(period);
+        fetchSalesTrendData(period);
+        fetchTopProducts();
+        fetchRecentOrders();
+        fetchDemographicsData();
+    }
+
+    // Function to show loading indicators
+    function showLoading() {
+        document.querySelectorAll(".loading-placeholder").forEach((el) => {
+            el.innerText = "--";
+        });
+        document.querySelector(".sales-chart-loader").style.display = "flex";
+        document.querySelector(".products-chart-loader").style.display = "flex";
+        document.querySelector(".demographics-chart-loader").style.display =
+            "flex";
+        document.querySelector(".orders-table-loader").style.display = "block";
+    }
+
+    // Function to hide loading indicators
+    function hideLoading() {
+        document.querySelector(".sales-chart-loader").style.display = "none";
+        document.querySelector(".products-chart-loader").style.display = "none";
+        document.querySelector(".demographics-chart-loader").style.display =
+            "none";
+        document.querySelector(".orders-table-loader").style.display = "none";
+    }
+
+    // Fetch summary data for dashboard
+    function fetchSummary(period = "all") {
+        // Show loading indicators
+        document.querySelectorAll(".loading-placeholder").forEach((el) => {
+            el.innerText = "--";
+        });
+
+        fetch(`/api/analytics/dashboard_summary/?period=${period}`)
+            .then((response) => response.json())
+            .then((data) => {
+                document.querySelector(".customers-count").textContent =
+                    data.total_customers ?? "0";
+                document.querySelector(".products-count").textContent =
+                    data.total_products ?? "0";
+                document.querySelector(".orders-count").textContent =
+                    data.total_orders ?? "0";
+                document.querySelector(".revenue-total").textContent =
+                    formatCurrency(data.total_revenue ?? 0);
+
+                // Update growth indicators
+                updateGrowthIndicator(
+                    document.querySelector(".customer-growth"),
+                    data.customer_growth ?? 0
+                );
+                updateGrowthIndicator(
+                    document.querySelector(".product-growth"),
+                    data.product_growth ?? 0
+                );
+                updateGrowthIndicator(
+                    document.querySelector(".orders-growth"),
+                    data.order_growth ?? 0
+                );
+                updateGrowthIndicator(
+                    document.querySelector(".revenue-growth"),
+                    data.revenue_growth ?? 0
+                );
+            })
+            .catch((error) => {
+                console.error("Error fetching dashboard summary:", error);
+
+                // Fallback to sample data
+                document.querySelector(".customers-count").textContent =
+                    "1,245";
+                document.querySelector(".products-count").textContent = "456";
+                document.querySelector(".orders-count").textContent = "5,678";
+                document.querySelector(".revenue-total").textContent =
+                    "$348,291.23";
+
+                // Sample growth indicators
+                updateGrowthIndicator(
+                    document.querySelector(".customer-growth"),
+                    12.5
+                );
+                updateGrowthIndicator(
+                    document.querySelector(".product-growth"),
+                    8.3
+                );
+                updateGrowthIndicator(
+                    document.querySelector(".orders-growth"),
+                    15.2
+                );
+                updateGrowthIndicator(
+                    document.querySelector(".revenue-growth"),
+                    18.7
+                );
+            });
+    }
+
+    // Fetch sales trend data
+    function fetchSalesTrendData(period = "week") {
+        document.querySelector(".sales-chart-loader").style.display = "flex";
+
+        // Update active period button
+        document.querySelectorAll(".period-button").forEach((button) => {
+            if (button.dataset.period === period) {
+                button.classList.remove(
+                    "bg-gray-200",
+                    "text-gray-700",
+                    "dark:bg-gray-700",
+                    "dark:text-gray-300"
+                );
+                button.classList.add("bg-blue-600", "text-white");
+            } else {
+                button.classList.remove("bg-blue-600", "text-white");
+                button.classList.add(
+                    "bg-gray-200",
+                    "text-gray-700",
+                    "dark:bg-gray-700",
+                    "dark:text-gray-300"
+                );
+            }
+        });
+
+        fetch(`/api/orders/sales_trend/?period=${period}`)
+            .then((response) => response.json())
+            .then((data) => {
+                updateSalesTrendChart(data);
+                document.querySelector(".sales-chart-loader").style.display =
+                    "none";
+            })
+            .catch((error) => {
+                console.error("Error fetching sales trend data:", error);
+
+                // Fallback to sample data
+                const sampleData = [
+                    { period: "2023-01", total_sales: 25000, order_count: 120 },
+                    { period: "2023-02", total_sales: 28000, order_count: 135 },
+                    { period: "2023-03", total_sales: 29500, order_count: 140 },
+                    { period: "2023-04", total_sales: 31000, order_count: 150 },
+                    { period: "2023-05", total_sales: 33000, order_count: 160 },
+                    { period: "2023-06", total_sales: 35000, order_count: 170 },
+                ];
+                updateSalesTrendChart(sampleData);
+                document.querySelector(".sales-chart-loader").style.display =
+                    "none";
+            });
+    }
+
+    // Fetch top products data
+    function fetchTopProducts() {
+        document.querySelector(".products-chart-loader").style.display = "flex";
+        const limit = document.getElementById("topProductsLimit").value || 5;
+
+        fetch(`/api/products/top_sellers/?limit=${limit}`)
+            .then((response) => response.json())
+            .then((data) => {
+                updateTopProductsChart(data);
+                document.querySelector(".products-chart-loader").style.display =
+                    "none";
+            })
+            .catch((error) => {
+                console.error("Error fetching top products:", error);
+
+                // Fallback to sample data
+                const sampleData = [
+                    { product_name: "Product A", total_quantity: 240 },
+                    { product_name: "Product B", total_quantity: 180 },
+                    { product_name: "Product C", total_quantity: 150 },
+                    { product_name: "Product D", total_quantity: 120 },
+                    { product_name: "Product E", total_quantity: 90 },
+                ];
+                updateTopProductsChart(sampleData);
+                document.querySelector(".products-chart-loader").style.display =
+                    "none";
+            });
+    }
+
+    // Fetch demographics data
+    function fetchDemographicsData() {
+        document.querySelector(".demographics-chart-loader").style.display =
+            "flex";
+
+        fetch("/api/customers/demographics/")
+            .then((response) => response.json())
+            .then((data) => {
+                updateDemographicsChart(data);
+                document.querySelector(
+                    ".demographics-chart-loader"
+                ).style.display = "none";
+            })
+            .catch((error) => {
+                console.error("Error fetching demographics data:", error);
+
+                // Fallback to sample data
+                const sampleData = {
+                    age_groups: {
+                        "18-24": 15,
+                        "25-34": 32,
+                        "35-44": 28,
+                        "45-54": 18,
+                        "55+": 7,
+                    },
+                };
+                updateDemographicsChart(sampleData);
+                document.querySelector(
+                    ".demographics-chart-loader"
+                ).style.display = "none";
+            });
+    }
+
+    // Fetch recent orders
+    function fetchRecentOrders() {
+        document.querySelector(".orders-table-loader").style.display = "block";
+
+        fetch("/api/orders/recent/?limit=5")
+            .then((response) => response.json())
+            .then((data) => {
+                updateRecentOrdersTable(data);
+                document.querySelector(".orders-table-loader").style.display =
+                    "none";
+            })
+            .catch((error) => {
+                console.error("Error fetching recent orders:", error);
+
+                // Fallback to sample data
+                const sampleData = [
+                    {
+                        order_id: "ORD-12345",
+                        customer_name: "John Smith",
+                        date: "2023-06-15T14:30:00Z",
+                        total: 125.99,
+                        status: "Delivered",
+                    },
+                    {
+                        order_id: "ORD-12346",
+                        customer_name: "Jane Doe",
+                        date: "2023-06-14T10:45:00Z",
+                        total: 89.5,
+                        status: "Shipped",
+                    },
+                    {
+                        order_id: "ORD-12347",
+                        customer_name: "Robert Johnson",
+                        date: "2023-06-14T09:15:00Z",
+                        total: 245.75,
+                        status: "Processing",
+                    },
+                    {
+                        order_id: "ORD-12348",
+                        customer_name: "Emily Williams",
+                        date: "2023-06-13T16:20:00Z",
+                        total: 45.25,
+                        status: "Delivered",
+                    },
+                    {
+                        order_id: "ORD-12349",
+                        customer_name: "Michael Brown",
+                        date: "2023-06-13T11:05:00Z",
+                        total: 188.3,
+                        status: "Delivered",
+                    },
+                ];
+                updateRecentOrdersTable(sampleData);
+                document.querySelector(".orders-table-loader").style.display =
+                    "none";
+            });
+    }
+
+    // Update the sales trend chart
+    function updateSalesTrendChart(data) {
+        const ctx = document.getElementById("salesTrendChart").getContext("2d");
+        const isDarkMode = document.documentElement.classList.contains("dark");
+
+        const gridColor = isDarkMode
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.05)";
+        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+
+        const labels = data.map((item) => item.period);
+        const salesData = data.map((item) => item.total_sales);
+        const orderCountData = data.map((item) => item.order_count);
+
+        if (window.salesTrendChart instanceof Chart) {
+            window.salesTrendChart.destroy();
+        }
+
+        window.salesTrendChart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Sales",
+                        data: salesData,
+                        borderColor: "rgba(59, 130, 246, 1)",
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                    },
+                    {
+                        label: "Orders",
+                        data: orderCountData,
+                        borderColor: "rgba(16, 185, 129, 1)",
+                        backgroundColor: "transparent",
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        yAxisID: "y1",
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: "index",
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true,
+                            color: gridColor,
+                        },
+                        ticks: {
+                            callback: function (value) {
+                                return "$" + value.toLocaleString();
+                            },
+                            color: textColor,
+                        },
+                    },
+                    y1: {
+                        position: "right",
+                        beginAtZero: true,
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            color: textColor,
+                        },
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            color: textColor,
+                        },
+                    },
+                },
+                plugins: {
+                    legend: {
+                        position: "top",
+                        labels: {
+                            color: textColor,
+                        },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let label = context.dataset.label || "";
+                                if (label) {
+                                    label += ": ";
+                                }
+                                if (context.datasetIndex === 0) {
+                                    label += formatCurrency(context.parsed.y);
+                                } else {
+                                    label += context.parsed.y;
+                                }
+                                return label;
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    // Update the top products chart
+    function updateTopProductsChart(data) {
+        const ctx = document
+            .getElementById("topProductsChart")
+            .getContext("2d");
+        const isDarkMode = document.documentElement.classList.contains("dark");
+
+        const gridColor = isDarkMode
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.05)";
+        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+
+        const labels = data.map((item) => item.product_name || item.name);
+        const quantities = data.map(
+            (item) => item.total_quantity || item.quantity
+        );
+
+        if (window.topProductsChart instanceof Chart) {
+            window.topProductsChart.destroy();
+        }
+
+        window.topProductsChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Units Sold",
+                        data: quantities,
+                        backgroundColor: [
+                            "rgba(59, 130, 246, 0.6)",
+                            "rgba(16, 185, 129, 0.6)",
+                            "rgba(245, 158, 11, 0.6)",
+                            "rgba(239, 68, 68, 0.6)",
+                            "rgba(139, 92, 246, 0.6)",
+                        ],
+                        borderColor: [
+                            "rgba(59, 130, 246, 1)",
+                            "rgba(16, 185, 129, 1)",
+                            "rgba(245, 158, 11, 1)",
+                            "rgba(239, 68, 68, 1)",
+                            "rgba(139, 92, 246, 1)",
+                        ],
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true,
+                            color: gridColor,
+                        },
+                        ticks: {
+                            color: textColor,
+                        },
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            color: textColor,
+                        },
+                    },
+                },
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (tooltipItems) {
+                                return tooltipItems[0].label;
+                            },
+                            label: function (context) {
+                                return `Units Sold: ${context.parsed.y}`;
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    // Update the demographics chart
+    function updateDemographicsChart(data) {
+        const ctx = document
+            .getElementById("demographicsChart")
+            .getContext("2d");
+        const isDarkMode = document.documentElement.classList.contains("dark");
+
+        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+
+        // Extract age group data
+        const labels = Object.keys(data.age_groups || {});
+        const ageData = Object.values(data.age_groups || {});
+
+        if (window.demographicsChart instanceof Chart) {
+            window.demographicsChart.destroy();
+        }
+
+        window.demographicsChart = new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Age Distribution",
+                        data: ageData,
+                        backgroundColor: [
+                            "rgba(59, 130, 246, 0.6)", // blue
+                            "rgba(16, 185, 129, 0.6)", // green
+                            "rgba(245, 158, 11, 0.6)", // yellow
+                            "rgba(239, 68, 68, 0.6)", // red
+                            "rgba(139, 92, 246, 0.6)", // purple
+                        ],
+                        borderColor: [
+                            "rgba(59, 130, 246, 1)",
+                            "rgba(16, 185, 129, 1)",
+                            "rgba(245, 158, 11, 1)",
+                            "rgba(239, 68, 68, 1)",
+                            "rgba(139, 92, 246, 1)",
+                        ],
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: {
+                            color: textColor,
+                            padding: 10,
+                            boxWidth: 12,
+                        },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const percentage =
+                                    Math.round(context.parsed * 10) / 10;
+                                return `${context.label}: ${percentage}%`;
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    // Update the recent orders table
+    function updateRecentOrdersTable(orders) {
+        const tableBody = document.getElementById("recentOrdersTable");
+
+        if (!orders || orders.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100" colspan="5">
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox text-gray-400 text-3xl mb-2"></i>
+                            <p>No recent orders found</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        let tableContent = "";
+
+        orders.forEach((order) => {
+            const statusClass =
+                order.status === "Delivered"
+                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                    : order.status === "Shipped"
+                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    : order.status === "Processing"
+                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                    : order.status === "Cancelled"
+                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+
+            tableContent += `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-750 transition-all">
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${
+                        order.order_id
+                    }</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${
+                        order.customer_name
+                    }</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${formatDate(
+                        order.date
+                    )}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${formatCurrency(
+                        order.total
+                    )}</td>
+                    <td class="px-6 py-4 text-sm">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${
+                order.status
+            }</span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tableBody.innerHTML = tableContent;
+    }
+
+    // Initialize charts on page load
+    document.addEventListener("DOMContentLoaded", function () {
+        // Show loading indicators
+        showLoading();
+
+        // Initialize all charts and data
+        fetchSummary();
+        fetchSalesTrendData("week");
+        fetchTopProducts();
+        fetchDemographicsData();
+        fetchRecentOrders();
+
+        // Setup event listeners for period buttons
+        document.querySelectorAll(".period-button").forEach((button) => {
+            button.addEventListener("click", function () {
+                const period = this.dataset.period;
+                fetchSalesTrendData(period);
+            });
+        });
+
+        // Setup event listener for top products limit dropdown
+        document
+            .getElementById("topProductsLimit")
+            .addEventListener("change", function () {
+                fetchTopProducts();
+            });
+
+        // Handle dark mode changes to update chart colors
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.attributeName === "class") {
+                    const isDarkMode =
+                        document.documentElement.classList.contains("dark");
+                    if (window.salesTrendChart) {
+                        fetchSalesTrendData(
+                            document.querySelector(".period-button.bg-blue-600")
+                                .dataset.period
+                        );
+                    }
+                    if (window.topProductsChart) {
+                        fetchTopProducts();
+                    }
+                    if (window.demographicsChart) {
+                        fetchDemographicsData();
+                    }
+                }
+            });
+        });
+
+        observer.observe(document.documentElement, { attributes: true });
+    });
+</script>
+{% endblock %}
