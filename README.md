@@ -2,7 +2,7 @@
 
 A comprehensive data analytics and visualization platform built with Django and MongoDB, featuring real-time dashboards, predictive analytics, and customer behavior insights.
 
-![Dashboard of Dash Analytics](assets/image.png)
+![Dashboard of Dash Analytics](assets/landing_page.png)
 
 ## Features
 
@@ -33,60 +33,49 @@ A comprehensive data analytics and visualization platform built with Django and 
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd DashAnalytics
 ```
 
 2. Create a virtual environment:
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 3. Install dependencies:
+
 ```bash
 pip install -r dash_analytics/requirements.txt
 ```
 
-4. Set up environment variables:
-Create a .env file in the project root with:
-```
-DEBUG=True
-SECRET_KEY=your-secret-key
-MONGODB_URI=mongodb://localhost:27017/dashanalytics
-```
+4. Run migrations:
 
-5. Start MongoDB:
-   - Make sure MongoDB service is running on your system
-   - The default connection URI is: mongodb://localhost:27017/dashanalytics
-   - You can change this in the .env file if needed
-
-6. Initialize TailwindCSS:
-```bash 
-python manage.py tailwind install
-python manage.py tailwind start
-```
-
-7. Run migrations:
 ```bash
+cd dash_analytics
 python manage.py migrate
 ```
 
-8. Create a superuser (admin):
+5. Create a superuser (admin):
+
 ```bash
 python manage.py createsuperuser
 ```
 
-9. Start the development server:
+6. Start the development server:
+
 ```bash
 python manage.py runserver
 ```
 
 The application will be available at:
-- Main application: http://localhost:8000
-- Admin interface: http://localhost:8000/admin
-- API endpoints: http://localhost:8000/api/
+
+- Main application: <http://localhost:8000>
+- Admin interface: <http://localhost:8000/admin>
+- API endpoints: <http://localhost:8000/api/>
 
 ## Project Structure
 
@@ -100,33 +89,37 @@ The application will be available at:
 
 ## Team Members
 
-* Nusrat Jahan Sumaiya - 22234103100
-* Sadikul Amin Sadman - 22234103128
-* Md. Faiyazur Rahman - 22234103093
-* Md. Khairul Bashar Hasib - 22234103102
-* Rakibul Hasan Rakib - 22234103096
+- Nusrat Jahan Sumaiya - 22234103100
+- Sadikul Amin Sadman - 22234103128
+- Md. Faiyazur Rahman - 22234103093
+- Md. Khairul Bashar Hasib - 22234103102
+- Rakibul Hasan Rakib - 22234103096
 
 ## Features in Detail
 
 ### Data Analytics
+
 - Sales performance tracking
 - Customer segmentation
 - Product performance analysis
 - Geographical distribution analysis
 
 ### Predictive Analytics
+
 - Sales forecasting
 - Customer churn prediction
 - Product demand prediction
 - Trend analysis
 
 ### Visualization
+
 - Interactive charts and graphs
 - Real-time data updates
 - Custom date range filters
 - Export capabilities
 
 ### Data Management
+
 - CSV data import through web interface
 - Automatic data validation and cleaning
 - Historical data tracking with MongoDB
@@ -136,6 +129,7 @@ The application will be available at:
 ## API Documentation
 
 The REST API is available at `/api/` with the following endpoints:
+
 - `/api/customers/` - Customer data management
 - `/api/products/` - Product information
 - `/api/orders/` - Order processing and history
