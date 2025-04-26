@@ -63,3 +63,57 @@ class CustomerViewSet(viewsets.ViewSet):
 
         customer.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['get'])
+    def demographics(self, request):
+        """
+        Get customer demographics data for visualization
+        """
+        try:
+            # Get age distribution
+            age_distribution = Customer.objects.aggregate([
+                {"$group": {
+                    "_id": {
+                        "$switch": {
+                            "branches": [
+                                {"case": {"$lt": ["$age", 18]}, "then": "Under 18"},
+                                {"case": {"$and": [{"$gte": ["$age", 18]}, {"$lt": ["$age", 25]}]}, "then": "18-24"},
+                                {"case": {"$and": [{"$gte": ["$age", 25]}, {"$lt": ["$age", 35]}]}, "then": "25-34"},
+                                {"case": {"$and": [{"$gte": ["$age", 35]}, {"$lt": ["$age", 45]}]}, "then": "35-44"},
+                                {"case": {"$and": [{"$gte": ["$age", 45]}, {"$lt": ["$age", 55]}]}, "then": "45-54"},
+                                {"case": {"$and": [{"$gte": ["$age", 55]}, {"$lt": ["$age", 65]}]}, "then": "55-64"}
+                            ],
+                            "default": "65+"
+                        }
+                    },
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"_id": 1}}
+            ])
+
+            # Get gender distribution
+            gender_distribution = Customer.objects.aggregate([
+                {"$group": {
+                    "_id": "$gender",
+                    "count": {"$sum": 1}
+                }}
+            ])
+
+            # Get location distribution
+            location_distribution = Customer.objects.aggregate([
+                {"$group": {
+                    "_id": "$location",
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"count": -1}},
+                {"$limit": 10}
+            ])
+
+            return Response({
+                'age_groups': {group['_id']: group['count'] for group in age_distribution},
+                'gender': {group['_id']: group['count'] for group in gender_distribution},
+                'locations': {group['_id']: group['count'] for group in location_distribution}
+            })
+        except Exception as e:
+            print(f"Error in demographics view: {str(e)}")
+            return Response({"error": "Failed to fetch demographics data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

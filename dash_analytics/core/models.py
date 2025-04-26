@@ -14,46 +14,56 @@ class MongoUser(Document):
     is_active = fields.BooleanField(default=True)
     date_joined = fields.DateTimeField(default=datetime.utcnow)
     last_login = fields.DateTimeField()
-    
-    def save(self, *args, **kwargs):
-        if self._created or self._get_changed_fields().get('password'):
-            self.password = make_password(self.password)
-        return super().save(*args, **kwargs)
-    
-    # Required Django auth model methods
+
+    meta = {
+        'collection': 'users',
+        'indexes': ['username', 'email']
+    }
+
+    @property
+    def pk(self):
+        return str(self.id)
+
+    @property
     def is_authenticated(self):
         return True
-    
+
+    @property
     def is_anonymous(self):
         return False
-    
+
+    @property
+    def is_staff(self):
+        return False
+
     def get_username(self):
         return self.username
 
     def check_password(self, raw_password):
         return check_password(raw_password, self.password)
 
-    @property
-    def id(self):
-        return str(self.pk)
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+        self.save(skip_password_hash=True)
 
-    @property
-    def is_staff(self):
-        return False
+    def save(self, *args, **kwargs):
+        if not self.date_joined:
+            self.date_joined = datetime.utcnow()
+        # Hash password if not already hashed
+        if self.password and not self.password.startswith('pbkdf2_sha256$') and not kwargs.get('skip_password_hash', False):
+            self.password = make_password(self.password)
+        if 'skip_password_hash' in kwargs:
+            del kwargs['skip_password_hash']
+        return super().save(*args, **kwargs)
 
-    def get_full_name(self):
-        return f"{self.first_name} {self.last_name}".strip()
-
-    def get_short_name(self):
-        return self.first_name
+    def __str__(self):
+        return self.username
 
     def has_perm(self, perm, obj=None):
-        return True  # Add proper permission handling if needed
+        return True
 
     def has_module_perms(self, app_label):
-        return True  # Add proper permission handling if needed
-        
-    meta = {'collection': 'users', 'indexes': ['username', 'email']}
+        return True
 
 class Customer(Document):
     customer_id = fields.StringField(required=True, unique=True)
