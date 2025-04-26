@@ -134,9 +134,14 @@ class AnalyticsViewSet(viewsets.ViewSet):
         # Get total orders
         total_orders = Order.objects.count()
 
-        # Get total revenue
-        total_revenue_agg = Order.objects.aggregate(total=Sum('total_amount'))
-        total_revenue = total_revenue_agg.get('total', 0)
+        # Get total revenue using MongoDB aggregation pipeline
+        total_revenue_agg = Order.objects.aggregate([
+            {"$group": {
+                "_id": None,
+                "total": {"$sum": "$total_amount"}
+            }}
+        ])
+        total_revenue = next(total_revenue_agg).get('total', 0) if total_revenue_agg else 0
 
         # Get recent orders (last 5)
         recent_orders = Order.objects.order_by('-order_date')[:5]
@@ -148,10 +153,11 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 'order_id': order.order_id,
                 'customer_name': customer_name,
                 'date': order.order_date,
-                'total': float(order.total_amount)
+                'total': float(order.total_amount),
+                'status': order.order_status
             })
 
-        # Get top selling products
+        # Get top products
         top_products = Order.objects.aggregate([
             {"$unwind": "$items"},
             {"$group": {
@@ -171,7 +177,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                     'quantity': product['total_quantity']
                 })
             except Product.DoesNotExist:
-                pass
+                continue
 
         return Response({
             'total_customers': total_customers,

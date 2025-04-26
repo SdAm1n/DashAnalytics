@@ -27,6 +27,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-uc8e7hc^%3di05e2zikr$05$u-#85)on^buq84(d-f-0bceqvm'
 
+# Session configuration
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_COOKIE_NAME = 'sessionid'
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Authentication settings
+AUTHENTICATION_BACKENDS = [
+    'core.auth.MongoDBAuthBackend',
+      # Keep default as fallback
+]
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -57,12 +71,6 @@ INSTALLED_APPS = [
     'theme',
 ]
 
-# Custom authentication settings
-AUTHENTICATION_BACKENDS = [
-    'core.auth.MongoEngineBackend',
-    'django.contrib.auth.backends.ModelBackend',
-]
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -71,10 +79,11 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'core.middleware.JWTAuthenticationMiddleware',  # Add our custom middleware
+    'core.middleware.JWTAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_browser_reload.middleware.BrowserReloadMiddleware',
+ 
 ]
 
 ROOT_URLCONF = 'dash_analytics.urls'
@@ -216,3 +225,6 @@ SIMPLE_JWT = {
 # CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development
 CORS_ALLOW_CREDENTIALS = True
+
+LOGIN_URL = '/signin/'
+LOGIN_REDIRECT_URL = '/dashboard/'

@@ -1,13 +1,15 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.hashers import check_password
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
+from django.contrib.auth.hashers import check_password, make_password
 from .models import MongoUser, UserProfile
 from api.serializers.user_serializer import UserSerializer
 import jwt
 from django.conf import settings
+from datetime import datetime, timedelta
 from datetime import datetime
+from .models import MongoUser
 
 
 def index(request):
@@ -170,92 +172,97 @@ def data_upload(request):
 
 
 def signin(request):
-    """
-    Sign in view using MongoUser
-    """
+    try:
+        user_id = request.session.get('_auth_user_id')
+        if user_id:
+            user = MongoUser.objects(id=user_id).first()
+            if user:
+                return redirect('dashboard')
+
+        if request.method == 'POST':
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+
+            if not username or not password:
+                messages.error(request, 'Please provide both username and password.')
+                return render(request, 'core/signin.html')
+
+            user = MongoUser.objects.filter(username=username).first()
+
+            if not user or not user.check_password(password):
+                messages.error(request, 'Invalid username or password.')
+                return render(request, 'core/signin.html')
+
+            if not user.is_active:
+                messages.error(request, 'This account is inactive.')
+                return render(request, 'core/signin.html')
+
+            # 🛠 Set session manually
+            request.session['_auth_user_id'] = str(user.pk)
+            request.session['_auth_user_backend'] = 'core.auth.MongoDBAuthBackend'
+            request.session['_auth_user_hash'] = ''
+
+            # Update last login
+            user.last_login = datetime.utcnow()
+            user.save(skip_password_hash=True)
+
+            return redirect('dashboard')
+
+    except Exception as e:
+        print(f"Signin error: {str(e)}")
+        messages.error(request, 'An error occurred during login. Please try again.')
+
+    return render(request, 'core/signin.html')
+
+
+
+def signup(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
 
     if request.method == 'POST':
         username = request.POST.get('username')
-        password = request.POST.get('password')
-        
-        user = MongoUser.objects.filter(username=username).first()
-        if user and check_password(password, user.password):
-            # Update last login
-            user.last_login = datetime.utcnow()
-            user.save()
-            
-            # Generate JWT token
-            token = jwt.encode({
-                'user_id': str(user.id),
-                'username': user.username,
-                'email': user.email,
-                'exp': datetime.utcnow() + settings.JWT_EXPIRATION_DELTA
-            }, settings.SECRET_KEY, algorithm='HS256')
-            
-            # Store token in session
-            request.session['auth_token'] = token
-            messages.success(request, f"Welcome back, {username}!")
-            return redirect('dashboard')
-        else:
-            messages.error(request, "Invalid username or password.")
-    
-    return render(request, 'core/signin.html')
-
-
-def signup(request):
-    """
-    Sign up view using MongoUser
-    """
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-
-    if request.method == 'POST':
+        email = request.POST.get('email')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
-        
-        # Check if passwords match
+
+        if not all([username, password1, password2]):
+            messages.error(request, 'Please fill in all required fields.')
+            return redirect('signup')
+
         if password1 != password2:
-            messages.error(request, "Passwords do not match.")
-            return render(request, 'core/signup.html')
-            
-        # Create data dict for serializer
-        data = {
-            'username': request.POST.get('username'),
-            'email': request.POST.get('email'),
-            'password': password1  # Use password1 as the password
-        }
-        
-        serializer = UserSerializer(data=data)
-        if serializer.is_valid():
-            # Check if user already exists
-            if MongoUser.objects.filter(username=serializer.validated_data['username']).first():
-                messages.error(request, "Username already exists.")
-                return render(request, 'core/signup.html')
-            if MongoUser.objects.filter(email=serializer.validated_data['email']).first():
-                messages.error(request, "Email already exists.")
-                return render(request, 'core/signup.html')
-            
-            # Create new user
-            user = serializer.create(serializer.validated_data)
-            
-            # Generate JWT token
-            token = jwt.encode({
-                'user_id': str(user.id),
-                'username': user.username,
-                'email': user.email,
-                'exp': datetime.utcnow() + settings.JWT_EXPIRATION_DELTA
-            }, settings.SECRET_KEY, algorithm='HS256')
-            
-            # Store token in session
-            request.session['auth_token'] = token
-            messages.success(request, "Registration successful. Welcome!")
+            messages.error(request, 'Passwords do not match.')
+            return redirect('signup')
+
+        try:
+            if MongoUser.objects.filter(username=username).first():
+                messages.error(request, 'Username already exists.')
+                return redirect('signup')
+
+            if email and MongoUser.objects.filter(email=email).first():
+                messages.error(request, 'Email already exists.')
+                return redirect('signup')
+
+            user = MongoUser(
+                username=username,
+                email=email if email else None,
+                password=password1  # will be hashed automatically
+            )
+            user.save()
+
+            # 🛠 Set session manually
+            request.session['_auth_user_id'] = str(user.pk)
+            request.session['_auth_user_backend'] = 'core.auth.MongoDBAuthBackend'
+            request.session['_auth_user_hash'] = ''
+
+            messages.success(request, 'Registration successful! Welcome!')
             return redirect('dashboard')
-        else:
-            for error in serializer.errors.values():
-                messages.error(request, error[0])
-    
+
+        except Exception as e:
+            print(f"Signup error: {str(e)}")
+            messages.error(request, 'An error occurred during registration. Please try again.')
+            return redirect('signup')
+
     return render(request, 'core/signup.html')
 
 
@@ -289,8 +296,7 @@ def profile(request):
                 # Update user's profile information
                 user = request.user
                 user.email = request.POST.get('email', user.email)
-                user.first_name = request.POST.get(
-                    'first_name', user.first_name)
+                user.first_name = request.POST.get('first_name', user.first_name)
                 user.last_name = request.POST.get('last_name', user.last_name)
                 user.save()
 

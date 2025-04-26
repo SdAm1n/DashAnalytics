@@ -5,28 +5,19 @@ from .models import MongoUser
 from django.utils.functional import SimpleLazyObject
 from django.contrib import messages
 
-def get_user_from_token(request):
-    token = request.session.get('auth_token')
-    if not token:
+
+def get_user_from_session(request):
+    user_id = request.session.get('_auth_user_id')
+    if not user_id:
         return AnonymousUser()
-    
+
     try:
-        # Decode the JWT token
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-        user = MongoUser.objects.filter(id=payload['user_id']).first()
+        user = MongoUser.objects.filter(id=user_id).first()
         if user:
             return user
-    except jwt.ExpiredSignatureError:
-        # Token has expired
-        request.session.flush()
-        messages.error(request, "Session expired. Please sign in again.")
-    except jwt.InvalidTokenError:
-        # Token is invalid
-        request.session.flush()
-        messages.error(request, "Invalid session. Please sign in again.")
     except Exception:
-        request.session.flush()
-    
+        return AnonymousUser()
+
     return AnonymousUser()
 
 class JWTAuthenticationMiddleware:
@@ -34,5 +25,5 @@ class JWTAuthenticationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        request.user = SimpleLazyObject(lambda: get_user_from_token(request))
+        request.user = SimpleLazyObject(lambda: get_user_from_session(request))
         return self.get_response(request)
