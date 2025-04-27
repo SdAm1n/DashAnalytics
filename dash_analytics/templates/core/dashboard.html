@@ -601,35 +601,35 @@
                 const sampleData = [
                     {
                         order_id: "ORD-12345",
-                        customer_name: "John Smith",
+                        customer_id: "CUST-001",
                         date: "2023-06-15T14:30:00Z",
                         total: 125.99,
                         status: "Delivered",
                     },
                     {
                         order_id: "ORD-12346",
-                        customer_name: "Jane Doe",
+                        customer_id: "CUST-002",
                         date: "2023-06-14T10:45:00Z",
                         total: 89.5,
                         status: "Shipped",
                     },
                     {
                         order_id: "ORD-12347",
-                        customer_name: "Robert Johnson",
+                        customer_id: "CUST-003",
                         date: "2023-06-14T09:15:00Z",
                         total: 245.75,
                         status: "Processing",
                     },
                     {
                         order_id: "ORD-12348",
-                        customer_name: "Emily Williams",
+                        customer_id: "CUST-004",
                         date: "2023-06-13T16:20:00Z",
                         total: 45.25,
                         status: "Delivered",
                     },
                     {
                         order_id: "ORD-12349",
-                        customer_name: "Michael Brown",
+                        customer_id: "CUST-005",
                         date: "2023-06-13T11:05:00Z",
                         total: 188.3,
                         status: "Delivered",
@@ -949,7 +949,7 @@
                         order.order_id
                     }</td>
                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${
-                        order.customer_name
+                        order.customer_id
                     }</td>
                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${formatDate(
                         order.date

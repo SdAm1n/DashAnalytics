@@ -144,11 +144,11 @@ class OrderViewSet(viewsets.ViewSet):
 
         result = []
         for order in orders:
-            customer_name = order.customer.name if order.customer else "Unknown"
+            customer_id = order.customer.customer_id if order.customer else "Unknown"
 
             result.append({
                 'order_id': order.order_id,
-                'customer_name': customer_name,
+                'customer_id': customer_id,
                 'date': order.order_date,
                 'total': float(order.total_amount),
                 'status': order.order_status,

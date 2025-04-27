@@ -12,12 +12,12 @@ def get_user_from_session(request):
         return AnonymousUser()
 
     try:
+        # Use the existing connection from settings.py
         user = MongoUser.objects.filter(id=user_id).first()
         if user:
             return user
-    except Exception:
-        return AnonymousUser()
-
+    except Exception as e:
+        print(f"Session error: {str(e)}")
     return AnonymousUser()
 
 class JWTAuthenticationMiddleware:

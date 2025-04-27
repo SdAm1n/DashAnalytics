@@ -5,7 +5,6 @@ from core.models import Customer
 class CustomerSerializer(serializers.Serializer):
     id = serializers.CharField(source='id')
     customer_id = serializers.CharField()
-    name = serializers.CharField()
     email = serializers.EmailField()
     age = serializers.IntegerField(required=False, allow_null=True)
     gender = serializers.CharField(required=False, allow_null=True)

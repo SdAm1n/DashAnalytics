@@ -1,24 +1,15 @@
-{% extends "base.html" %} 
-{% block title %}Sales Trend - DashAnalytics{% endblock %} 
+{% extends "base.html" %}
+{% block title %}Sales Trend - DashAnalytics{% endblock %}
 {% block content %}
 <div class="mb-6">
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            Sales Trend Analysis
-        </h2>
-
-        <div class="flex flex-wrap mb-6">
+    <!-- Filters Section -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Sales Trend Analysis</h2>
+        <div class="flex flex-wrap gap-4">
             <!-- Period Filter -->
-            <div class="w-full md:w-1/4 mb-4 md:mb-0 md:mr-4">
-                <label
-                    for="period-select"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Time Period</label
-                >
-                <select
-                    id="period-select"
-                    class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
-                >
+            <div class="w-full md:w-1/4">
+                <label for="period-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time Period</label>
+                <select id="period-select" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full">
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
                     <option value="monthly" selected>Monthly</option>
@@ -28,238 +19,99 @@
             </div>
 
             <!-- Category Filter -->
-            <div class="w-full md:w-1/4 mb-4 md:mb-0 md:mr-4">
-                <label
-                    for="category-select"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Category</label
-                >
-                <select
-                    id="category-select"
-                    class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
-                >
+            <div class="w-full md:w-1/4">
+                <label for="category-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                <select id="category-select" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full">
                     <option value="all" selected>All Categories</option>
-                    <!-- Categories will be loaded dynamically -->
                 </select>
             </div>
 
             <!-- Date Range -->
-            <div class="w-full md:w-1/3 flex">
-                <div class="w-1/2 mr-2">
-                    <label
-                        for="date-from"
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                        >From</label
-                    >
-                    <input
-                        type="date"
-                        id="date-from"
-                        class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
-                    />
+            <div class="w-full md:w-1/3 flex gap-2">
+                <div class="w-1/2">
+                    <label for="date-from" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
+                    <input type="date" id="date-from" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full">
                 </div>
                 <div class="w-1/2">
-                    <label
-                        for="date-to"
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                        >To</label
-                    >
-                    <input
-                        type="date"
-                        id="date-to"
-                        class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
-                    />
+                    <label for="date-to" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To</label>
+                    <input type="date" id="date-to" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full">
                 </div>
             </div>
-        </div>
 
-        <div class="mb-4">
-            <button
-                id="apply-filters"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition"
-            >
-                Apply Filters
-            </button>
-            <button
-                id="reset-filters"
-                class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition ml-2"
-            >
-                Reset Filters
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Loading indicator -->
-<div id="main-loading-indicator" class="hidden">
-    <div class="flex justify-center items-center my-8">
-        <div
-            class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"
-        ></div>
-    </div>
-</div>
-
-<!-- Error message -->
-<div
-    id="error-message"
-    class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6"
->
-    <strong class="font-bold">Error:</strong>
-    <span id="error-text"
-        >There was an issue loading the data. Please try again.</span
-    >
-</div>
-
-<!-- Charts Container (initially hidden) -->
-<div id="charts-container">
-    <!-- Sales Trend Graph -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Sales Trend over Time
-        </h3>
-        <div class="h-80 relative">
-            <canvas id="salesTrendChart"></canvas>
-            <div
-                class="chart-loading-overlay hidden absolute inset-0 bg-white bg-opacity-75 dark:bg-gray-800 dark:bg-opacity-75 flex items-center justify-center"
-            >
-                <div
-                    class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"
-                ></div>
+            <!-- Action Buttons -->
+            <div class="w-full md:w-auto self-end">
+                <button id="apply-filters" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition">
+                    Apply Filters
+                </button>
+                <button id="reset-filters" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition ml-2">
+                    Reset
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Sales by Category -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h3
-                class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4"
-            >
-                Sales by Category
-            </h3>
-            <div class="h-64 relative">
-                <canvas id="categoryChart"></canvas>
-                <div
-                    class="chart-loading-overlay hidden absolute inset-0 bg-white bg-opacity-75 dark:bg-gray-800 dark:bg-opacity-75 flex items-center justify-center"
-                >
-                    <div
-                        class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"
-                    ></div>
+    <!-- Loading & Error States -->
+    <div id="main-loading-indicator" class="hidden">
+        <div class="flex justify-center items-center my-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+    </div>
+
+    <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+        <strong class="font-bold">Error:</strong>
+        <span id="error-text">There was an issue loading the data. Please try again.</span>
+    </div>
+
+    <!-- Charts Container -->
+    <div id="charts-container">
+        <!-- Sales Trend Chart -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Sales Trend over Time</h3>
+            <div class="h-80 relative">
+                <canvas id="salesTrendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Growth Rate Chart -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Sales Growth Rate</h3>
+            <div class="h-80 relative">
+                <canvas id="growthRateChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Distribution Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Sales by Category -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Sales by Category</h3>
+                <div class="h-64 relative">
+                    <canvas id="categoryChart"></canvas>
                 </div>
             </div>
-        </div>
 
-        <!-- Sales by Region -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h3
-                class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4"
-            >
-                Sales by Region
-            </h3>
-            <div class="h-64 relative">
-                <canvas id="regionChart"></canvas>
-                <div
-                    class="chart-loading-overlay hidden absolute inset-0 bg-white bg-opacity-75 dark:bg-gray-800 dark:bg-opacity-75 flex items-center justify-center"
-                >
-                    <div
-                        class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"
-                    ></div>
+            <!-- Sales by Region -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Sales by Region</h3>
+                <div class="h-64 relative">
+                    <canvas id="regionChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Top Products Table -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Top Selling Products
-        </h3>
-        <div class="overflow-x-auto">
-            <table
-                class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
-            >
-                <thead class="bg-gray-100 dark:bg-gray-700">
-                    <tr>
-                        <th
-                            scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Product
-                        </th>
-                        <th
-                            scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Category
-                        </th>
-                        <th
-                            scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Units Sold
-                        </th>
-                        <th
-                            scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Revenue
-                        </th>
-                        <th
-                            scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Growth
-                        </th>
-                    </tr>
-                </thead>
-                <tbody
-                    id="top-products-table"
-                    class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-                >
-                    <!-- Loading rows -->
-                    <tr class="animate-pulse table-loading-row">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div
-                                class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"
-                            ></div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div
-                                class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/2"
-                            ></div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div
-                                class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4"
-                            ></div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div
-                                class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3"
-                            ></div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div
-                                class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4"
-                            ></div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
 </div>
+{% endblock %}
 
-{% endblock %} {% block extra_js %}
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
 <script>
-    // Global variables for charts
-    let salesTrendChart, categoryChart, regionChart;
+    let salesTrendChart, growthRateChart, categoryChart, regionChart;
     let isDataLoading = false;
 
-    document.addEventListener("DOMContentLoaded", function () {
-        // Set up dates
+    document.addEventListener("DOMContentLoaded", function() {
+        // Set up default date range
         const today = new Date();
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(today.getMonth() - 6);
@@ -267,77 +119,38 @@
         document.getElementById("date-to").valueAsDate = today;
         document.getElementById("date-from").valueAsDate = sixMonthsAgo;
 
-        // Load categories dynamically
-        loadCategories();
-
         // Set up event listeners
-        document
-            .getElementById("apply-filters")
-            .addEventListener("click", function () {
-                if (!isDataLoading) {
-                    loadAllData();
-                }
-            });
+        document.getElementById("apply-filters").addEventListener("click", loadData);
+        document.getElementById("reset-filters").addEventListener("click", resetFilters);
+        document.getElementById("period-select").addEventListener("change", () => {
+            if (!isDataLoading) loadData();
+        });
 
-        document
-            .getElementById("reset-filters")
-            .addEventListener("click", resetFilters);
-
-        // Load initial data after a short delay
-        setTimeout(loadAllData, 100);
+        // Initial data load
+        loadData();
     });
 
-    function showMainLoading(show = true) {
-        const indicator = document.getElementById("main-loading-indicator");
+    function showLoading(show = true) {
+        const loadingIndicator = document.getElementById("main-loading-indicator");
         const chartsContainer = document.getElementById("charts-container");
         const errorMessage = document.getElementById("error-message");
 
         if (show) {
-            indicator.classList.remove("hidden");
+            loadingIndicator.classList.remove("hidden");
             chartsContainer.classList.add("hidden");
             errorMessage.classList.add("hidden");
         } else {
-            indicator.classList.add("hidden");
+            loadingIndicator.classList.add("hidden");
             chartsContainer.classList.remove("hidden");
         }
-    }
-
-    function showChartLoading(chartId, show = true) {
-        const chart = document.getElementById(chartId);
-        if (!chart) return;
-
-        const container = chart.closest(".relative");
-        if (!container) return;
-
-        const overlay = container.querySelector(".chart-loading-overlay");
-        if (!overlay) return;
-
-        if (show) {
-            overlay.classList.remove("hidden");
-        } else {
-            overlay.classList.add("hidden");
-        }
-    }
-
-    function showTableLoading(show = true) {
-        const loadingRows = document.querySelectorAll(".table-loading-row");
-        loadingRows.forEach((row) => {
-            if (show) {
-                row.classList.remove("hidden");
-            } else {
-                row.classList.add("hidden");
-            }
-        });
     }
 
     function showError(message) {
         const errorContainer = document.getElementById("error-message");
         const errorText = document.getElementById("error-text");
-
-        errorText.textContent =
-            message || "There was an issue loading the data. Please try again.";
+        errorText.textContent = message || "There was an issue loading the data. Please try again.";
         errorContainer.classList.remove("hidden");
-        showMainLoading(false);
+        showLoading(false);
     }
 
     function resetFilters() {
@@ -350,357 +163,190 @@
         document.getElementById("period-select").value = "monthly";
         document.getElementById("category-select").value = "all";
 
-        if (!isDataLoading) {
-            loadAllData();
-        }
+        loadData();
     }
 
-    function loadCategories() {
-        // This would normally fetch from an API
-        const dummyCategories = [
-            "Electronics",
-            "Clothing",
-            "Food",
-            "Books",
-            "Home & Garden",
-        ];
-        const select = document.getElementById("category-select");
-
-        // Keep the "All Categories" option and add the rest
-        const existingOptions = Array.from(select.options).map(
-            (opt) => opt.value
-        );
-
-        dummyCategories.forEach((category) => {
-            if (!existingOptions.includes(category.toLowerCase())) {
-                const option = document.createElement("option");
-                option.value = category.toLowerCase();
-                option.textContent = category;
-                select.appendChild(option);
-            }
-        });
-    }
-
-    function loadAllData() {
+    function loadData() {
         if (isDataLoading) return;
         isDataLoading = true;
 
-        // Show loading states
-        showMainLoading(true);
-        showChartLoading("salesTrendChart", true);
-        showChartLoading("categoryChart", true);
-        showChartLoading("regionChart", true);
-        showTableLoading(true);
+        const period = document.getElementById("period-select").value;
+        const category = document.getElementById("category-select").value;
+        const dateFrom = document.getElementById("date-from").value;
+        const dateTo = document.getElementById("date-to").value;
 
-        // Start loading data with a small delay to allow UI to update
-        setTimeout(() => {
-            try {
-                // Load data sequentially with small delays between each operation
-                loadSalesTrendData()
-                    .then(() => loadCategoryData())
-                    .then(() => loadRegionData())
-                    .then(() => loadTopProductsData())
-                    .then(() => {
-                        // All data loaded successfully
-                        isDataLoading = false;
-                        showMainLoading(false);
-                    })
-                    .catch((error) => {
-                        console.error("Error loading data:", error);
-                        showError(
-                            error.message ||
-                                "Failed to load data. Please try again."
-                        );
-                        isDataLoading = false;
-                    });
-            } catch (error) {
-                console.error("Error in loadAllData:", error);
-                showError("An unexpected error occurred. Please try again.");
+        showLoading(true);
+
+        fetch(`/api/analytics/sales_trend/?period=${period}&category=${category}&date_from=${dateFrom}&date_to=${dateTo}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderSalesTrendChart(data);
+                renderGrowthRateChart(data);
+                
+                if (data[0]?.category_sales) {
+                    renderCategoryChart(data[0].category_sales);
+                }
+                if (data[0]?.region_sales) {
+                    renderRegionChart(data[0].region_sales);
+                }
+                
                 isDataLoading = false;
-                showMainLoading(false);
-            }
-        }, 50);
-    }
-
-    // Promisified data loading functions
-    function loadSalesTrendData() {
-        return new Promise((resolve, reject) => {
-            try {
-                const period = document.getElementById("period-select").value;
-                const dateFrom = document.getElementById("date-from").value;
-                const dateTo = document.getElementById("date-to").value;
-
-                // Generate sample data (in a real app, this would be an API call)
-                const salesData = generateSalesTrendData(
-                    period,
-                    dateFrom,
-                    dateTo
-                );
-
-                // Render chart
-                renderSalesTrendChart(salesData);
-                showChartLoading("salesTrendChart", false);
-                resolve();
-            } catch (error) {
-                showChartLoading("salesTrendChart", false);
-                reject(new Error("Failed to load sales trend data"));
-            }
-        });
-    }
-
-    function loadCategoryData() {
-        return new Promise((resolve, reject) => {
-            try {
-                setTimeout(() => {
-                    const categoryData = generateCategoryData();
-                    renderCategoryChart(categoryData);
-                    showChartLoading("categoryChart", false);
-                    resolve();
-                }, 50);
-            } catch (error) {
-                showChartLoading("categoryChart", false);
-                reject(new Error("Failed to load category data"));
-            }
-        });
-    }
-
-    function loadRegionData() {
-        return new Promise((resolve, reject) => {
-            try {
-                setTimeout(() => {
-                    const regionData = generateRegionData();
-                    renderRegionChart(regionData);
-                    showChartLoading("regionChart", false);
-                    resolve();
-                }, 50);
-            } catch (error) {
-                showChartLoading("regionChart", false);
-                reject(new Error("Failed to load region data"));
-            }
-        });
-    }
-
-    function loadTopProductsData() {
-        return new Promise((resolve, reject) => {
-            try {
-                setTimeout(() => {
-                    const topProductsData = generateTopProductsData();
-                    renderTopProductsTable(topProductsData);
-                    showTableLoading(false);
-                    resolve();
-                }, 50);
-            } catch (error) {
-                showTableLoading(false);
-                reject(new Error("Failed to load top products data"));
-            }
-        });
-    }
-
-    function generateSalesTrendData(period, dateFrom, dateTo) {
-        const start = new Date(dateFrom);
-        const end = new Date(dateTo);
-        const dataPoints = [];
-        const maxPoints = 50; // Reduced data points for better performance
-
-        let current = new Date(start);
-        let interval;
-
-        // Calculate appropriate interval based on date range
-        const dateRange = end.getTime() - start.getTime();
-        const dayRange = dateRange / (1000 * 60 * 60 * 24);
-
-        if (period === "daily" && dayRange > maxPoints) {
-            interval = Math.ceil(dayRange / maxPoints);
-        } else {
-            interval = 1;
-        }
-
-        while (current <= end) {
-            dataPoints.push({
-                x: new Date(current),
-                y: Math.floor(Math.random() * 10000) + 5000,
+                showLoading(false);
+            })
+            .catch(error => {
+                console.error("Error loading data:", error);
+                showError(error.message);
+                isDataLoading = false;
             });
-
-            switch (period) {
-                case "daily":
-                    current.setDate(current.getDate() + interval);
-                    break;
-                case "weekly":
-                    current.setDate(current.getDate() + 7);
-                    break;
-                case "monthly":
-                    current.setMonth(current.getMonth() + 1);
-                    break;
-                case "quarterly":
-                    current.setMonth(current.getMonth() + 3);
-                    break;
-                case "yearly":
-                    current.setFullYear(current.getFullYear() + 1);
-                    break;
-            }
-        }
-
-        return dataPoints;
-    }
-
-    function generateCategoryData() {
-        return {
-            labels: [
-                "Electronics",
-                "Clothing",
-                "Food",
-                "Books",
-                "Home & Garden",
-            ],
-            data: [35, 25, 20, 10, 10],
-        };
-    }
-
-    function generateRegionData() {
-        return {
-            labels: [
-                "North America",
-                "Europe",
-                "Asia",
-                "Australia",
-                "Africa",
-                "South America",
-            ],
-            data: [40, 30, 15, 8, 4, 3],
-        };
-    }
-
-    function generateTopProductsData() {
-        return [
-            {
-                name: "Smartphone XYZ",
-                category: "Electronics",
-                units: 1245,
-                revenue: "$124,500",
-                growth: "+12%",
-            },
-            {
-                name: "Designer Jeans",
-                category: "Clothing",
-                units: 980,
-                revenue: "$68,600",
-                growth: "+8%",
-            },
-            {
-                name: "Wireless Earbuds",
-                category: "Electronics",
-                units: 870,
-                revenue: "$52,200",
-                growth: "+15%",
-            },
-            {
-                name: "Organic Coffee",
-                category: "Food",
-                units: 760,
-                revenue: "$38,000",
-                growth: "+5%",
-            },
-            {
-                name: "Smart Watch",
-                category: "Electronics",
-                units: 650,
-                revenue: "$58,500",
-                growth: "+20%",
-            },
-        ];
     }
 
     function renderSalesTrendChart(data) {
-        const canvas = document.getElementById("salesTrendChart");
-        if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
-
-        // Destroy previous chart if it exists
+        const ctx = document.getElementById("salesTrendChart").getContext("2d");
+        
         if (salesTrendChart) {
             salesTrendChart.destroy();
         }
 
         const isDarkMode = document.documentElement.classList.contains("dark");
-        const gridColor = isDarkMode
-            ? "rgba(255, 255, 255, 0.1)"
-            : "rgba(0, 0, 0, 0.1)";
+        const gridColor = isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)";
         const textColor = isDarkMode ? "#e5e7eb" : "#374151";
 
-        // Create chart with optimized options
         salesTrendChart = new Chart(ctx, {
             type: "line",
             data: {
+                labels: data.map(item => item.period),
                 datasets: [
                     {
-                        label: "Sales",
-                        data: data,
+                        label: "Sales ($)",
+                        data: data.map(item => item.total_sales),
                         borderColor: "#3b82f6",
                         backgroundColor: "rgba(59, 130, 246, 0.1)",
-                        tension: 0.3,
-                        fill: true,
-                        pointRadius: data.length > 30 ? 0 : 3, // Remove points for large datasets
+                        yAxisID: "y1"
                     },
-                ],
+                    {
+                        label: "Orders",
+                        data: data.map(item => item.order_count),
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        yAxisID: "y2"
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 0, // Disable animation for better performance
+                interaction: {
+                    mode: "index",
+                    intersect: false
                 },
                 plugins: {
                     legend: {
-                        display: true,
                         labels: {
-                            color: textColor,
-                        },
-                    },
-                    tooltip: {
-                        mode: "index",
-                        intersect: false,
-                    },
+                            color: textColor
+                        }
+                    }
                 },
                 scales: {
                     x: {
-                        type: "time",
-                        time: {
-                            unit: document.getElementById("period-select")
-                                .value,
-                        },
                         grid: {
-                            color: gridColor,
-                            display: false, // Hide grid lines for better performance
+                            color: gridColor
+                        },
+                        ticks: {
+                            color: textColor
+                        }
+                    },
+                    y1: {
+                        type: "linear",
+                        display: true,
+                        position: "left",
+                        grid: {
+                            color: gridColor
                         },
                         ticks: {
                             color: textColor,
-                            maxTicksLimit: 6, // Fewer ticks for better performance
-                        },
+                            callback: value => "$" + value.toLocaleString()
+                        }
                     },
-                    y: {
-                        beginAtZero: true,
+                    y2: {
+                        type: "linear",
+                        display: true,
+                        position: "right",
                         grid: {
-                            color: gridColor,
+                            display: false
                         },
                         ticks: {
-                            color: textColor,
-                            callback: function (value) {
-                                return "$" + value.toLocaleString();
-                            },
-                            maxTicksLimit: 5, // Fewer ticks for better performance
-                        },
-                    },
-                },
-            },
+                            color: textColor
+                        }
+                    }
+                }
+            }
         });
     }
 
-    function renderCategoryChart(data) {
-        const canvas = document.getElementById("categoryChart");
-        if (!canvas) return;
+    function renderGrowthRateChart(data) {
+        const ctx = document.getElementById("growthRateChart").getContext("2d");
+        
+        if (growthRateChart) {
+            growthRateChart.destroy();
+        }
 
-        const ctx = canvas.getContext("2d");
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const gridColor = isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)";
+        const textColor = isDarkMode ? "#e5e7eb" : "#374151";
 
+        growthRateChart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: data.map(item => item.period),
+                datasets: [{
+                    label: "Growth Rate (%)",
+                    data: data.map(item => item.growth_rate),
+                    borderColor: "#10b981",
+                    backgroundColor: "rgba(16, 185, 129, 0.1)",
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: textColor
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: gridColor
+                        },
+                        ticks: {
+                            color: textColor
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: gridColor
+                        },
+                        ticks: {
+                            color: textColor,
+                            callback: value => value.toFixed(1) + "%"
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderCategoryChart(categoryData) {
+        const ctx = document.getElementById("categoryChart").getContext("2d");
+        
         if (categoryChart) {
             categoryChart.destroy();
         }
@@ -708,50 +354,43 @@
         const isDarkMode = document.documentElement.classList.contains("dark");
         const textColor = isDarkMode ? "#e5e7eb" : "#374151";
 
+        // Sort categories by sales
+        const sortedCategories = Object.entries(categoryData)
+            .sort((a, b) => b[1] - a[1]);
+
         categoryChart = new Chart(ctx, {
             type: "pie",
             data: {
-                labels: data.labels,
-                datasets: [
-                    {
-                        data: data.data,
-                        backgroundColor: [
-                            "#3b82f6",
-                            "#ef4444",
-                            "#10b981",
-                            "#f59e0b",
-                            "#8b5cf6",
-                        ],
-                        borderWidth: 1,
-                    },
-                ],
+                labels: sortedCategories.map(([category]) => category),
+                datasets: [{
+                    data: sortedCategories.map(([, value]) => value),
+                    backgroundColor: [
+                        "rgba(59, 130, 246, 0.8)",  // Blue
+                        "rgba(16, 185, 129, 0.8)",  // Green
+                        "rgba(245, 158, 11, 0.8)",  // Yellow
+                        "rgba(239, 68, 68, 0.8)",   // Red
+                        "rgba(139, 92, 246, 0.8)",  // Purple
+                    ]
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 0, // Disable animation for better performance
-                },
                 plugins: {
                     legend: {
                         position: "right",
                         labels: {
-                            color: textColor,
-                            boxWidth: 12, // Smaller legend items
-                            padding: 10,
-                        },
-                    },
-                },
-            },
+                            color: textColor
+                        }
+                    }
+                }
+            }
         });
     }
 
-    function renderRegionChart(data) {
-        const canvas = document.getElementById("regionChart");
-        if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
-
+    function renderRegionChart(regionData) {
+        const ctx = document.getElementById("regionChart").getContext("2d");
+        
         if (regionChart) {
             regionChart.destroy();
         }
@@ -759,89 +398,41 @@
         const isDarkMode = document.documentElement.classList.contains("dark");
         const textColor = isDarkMode ? "#e5e7eb" : "#374151";
 
+        // Sort regions by sales
+        const sortedRegions = Object.entries(regionData)
+            .sort((a, b) => b[1] - a[1]);
+
         regionChart = new Chart(ctx, {
-            type: "doughnut",
+            type: "pie",
             data: {
-                labels: data.labels,
-                datasets: [
-                    {
-                        data: data.data,
-                        backgroundColor: [
-                            "#3b82f6",
-                            "#ef4444",
-                            "#10b981",
-                            "#f59e0b",
-                            "#8b5cf6",
-                            "#ec4899",
-                        ],
-                        borderWidth: 1,
-                    },
-                ],
+                labels: sortedRegions.map(([region]) => region),
+                datasets: [{
+                    data: sortedRegions.map(([, value]) => value),
+                    backgroundColor: [
+                        "rgba(59, 130, 246, 0.8)",  // Blue
+                        "rgba(16, 185, 129, 0.8)",  // Green
+                        "rgba(245, 158, 11, 0.8)",  // Yellow
+                        "rgba(239, 68, 68, 0.8)",   // Red
+                        "rgba(139, 92, 246, 0.8)",  // Purple
+                    ]
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 0, // Disable animation for better performance
-                },
                 plugins: {
                     legend: {
                         position: "right",
                         labels: {
-                            color: textColor,
-                            boxWidth: 12, // Smaller legend items
-                            padding: 10,
-                        },
-                    },
-                },
-            },
+                            color: textColor
+                        }
+                    }
+                }
+            }
         });
     }
 
-    function renderTopProductsTable(data) {
-        const tableBody = document.getElementById("top-products-table");
-        if (!tableBody) return;
-
-        // Clear existing rows except loading rows
-        const loadingRows = Array.from(
-            tableBody.querySelectorAll(".table-loading-row")
-        );
-        tableBody.innerHTML = "";
-        loadingRows.forEach((row) => tableBody.appendChild(row));
-
-        data.forEach((product) => {
-            const row = document.createElement("tr");
-            row.classList.add("hover:bg-gray-100", "dark:hover:bg-gray-700");
-
-            const growthClass = product.growth.includes("+")
-                ? "text-green-500"
-                : "text-red-500";
-
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">${
-                    product.name
-                }</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${
-                    product.category
-                }</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${product.units.toLocaleString()}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${
-                    product.revenue
-                }</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm ${growthClass}">${
-                product.growth
-            }</td>
-            `;
-
-            tableBody.appendChild(row);
-        });
-    }
-
-    // Update chart colors when theme changes
-    document.addEventListener("theme-changed", function (e) {
-        if (!isDataLoading) {
-            loadAllData();
-        }
-    });
+    // Theme change listener
+    document.addEventListener("theme-changed", loadData);
 </script>
 {% endblock %}

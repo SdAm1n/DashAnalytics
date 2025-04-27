@@ -3,13 +3,49 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.hashers import check_password, make_password
-from .models import MongoUser, UserProfile
+from .models import MongoUser, UserProfile, Customer, Product, Order, Sales
+from analytics.models import (
+    CustomerSegment, ProductCorrelation, Review, ProductPerformance, 
+    CategoryPerformance, Demographics, GeographicalInsights, 
+    CustomerBehavior, Prediction, Analysis, SalesTrend
+)
 from api.serializers.user_serializer import UserSerializer
 import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
-from datetime import datetime
-from .models import MongoUser
+from django.utils import timezone
+
+
+def initialize_data():
+    """
+    Initialize database collections if they don't exist.
+    This function ensures all required collections are created in MongoDB,
+    but does not add any sample data.
+    """
+    try:
+        # Ensure core collections exist by touching them
+        Customer.objects().first()
+        Product.objects().first()
+        Order.objects().first()
+        Sales.objects().first()
+        UserProfile.objects().first()
+        
+        # Ensure analytics collections exist by touching them
+        Review.objects().first()
+        SalesTrend.objects().first()
+        ProductPerformance.objects().first()
+        CategoryPerformance.objects().first()
+        Demographics.objects().first()
+        GeographicalInsights.objects().first()
+        CustomerBehavior.objects().first()
+        Prediction.objects().first()
+        Analysis.objects().first()
+        ProductCorrelation.objects().first()
+        CustomerSegment.objects().first()
+
+    except Exception as e:
+        print(f"Error ensuring collections exist: {str(e)}")
+        # Don't raise the error since we just want to ensure collections exist
 
 
 def index(request):
@@ -23,6 +59,11 @@ def index(request):
 
 @login_required
 def dashboard(request):
+    """
+    Dashboard view
+    """
+    initialize_data()  # Ensure we have initial data
+
     if not request.user.is_authenticated:
         return redirect('login')
 
@@ -41,24 +82,6 @@ def dashboard(request):
     except Exception as e:
         messages.error(request, f"Error loading dashboard: {str(e)}")
         return redirect('index')
-
-
-@login_required
-def sales_trend(request):
-    """
-    Sales trend analysis view
-    """
-    # Get user theme preference
-    theme = get_theme_preference(request)
-
-    # Context data for sales trend
-    context = {
-        'title': 'Sales Trend',
-        'active_page': 'sales_trend',
-        'theme': theme
-    }
-
-    return render(request, 'core/sales_trend.html', context)
 
 
 @login_required
@@ -149,6 +172,24 @@ def prediction(request):
     }
 
     return render(request, 'core/prediction.html', context)
+
+
+@login_required
+def sales_trend(request):
+    """
+    Sales trend analysis view
+    """
+    # Get user theme preference
+    theme = get_theme_preference(request)
+
+    # Context data for sales trend
+    context = {
+        'title': 'Sales Trend',
+        'active_page': 'sales_trend',
+        'theme': theme
+    }
+
+    return render(request, 'core/sales_trend.html', context)
 
 
 @login_required

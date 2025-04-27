@@ -1,324 +1,139 @@
 import logging
-import datetime
 import pandas as pd
 from decimal import Decimal
-import uuid
-import hashlib
-
-try:
-    from django.http import Http404
-    from django.conf import settings
-    from rest_framework import viewsets, status
-    from rest_framework.response import Response
-    from rest_framework.decorators import action
-except ImportError as e:
-    logging.error(f"Django import error: {str(e)}")
-    raise
-
-try:
-    from mongoengine.errors import ValidationError, NotUniqueError
-    from pymongo.errors import ConnectionFailure
-    from mongoengine import connect, disconnect
-except ImportError as e:
-    logging.error(f"Mongoengine import error: {str(e)}")
-    raise
-
-try:
-    from core.models import RawDataUpload, Customer, Product, Order, OrderItem
-except ImportError as e:
-    logging.error(f"Local models import error: {str(e)}")
-    raise
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from core.models import Customer, Product, Order, Sales
+from analytics.models import (
+    Review, SalesTrend, ProductPerformance, CategoryPerformance,
+    Demographics, GeographicalInsights, CustomerBehavior
+)
 
 logger = logging.getLogger(__name__)
 
-class DataUploadViewSet(viewsets.ViewSet):
-    """
-    API endpoint for data uploads and processing
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Ensure MongoDB connection is established
+class DataUploadView(APIView):
+    def post(self, request):
         try:
-            disconnect()  # Disconnect any existing connections
-            connect(
-                db=settings.MONGODB_NAME,
-                host=settings.MONGODB_URI,
-                connect=False
-            )
-        except ConnectionFailure as e:
-            logger.error(f"Failed to connect to MongoDB: {str(e)}")
-            raise
-
-    def _calculate_file_hash(self, file):
-        """
-        Calculate SHA-256 hash of file contents
-        """
-        sha256_hash = hashlib.sha256()
-        for chunk in file.chunks():
-            sha256_hash.update(chunk)
-        return sha256_hash.hexdigest()
-
-    def list(self, request):
-        """
-        List all data uploads
-        """
-        uploads = RawDataUpload.objects.all().order_by('-upload_date')
-
-        result = []
-        for upload in uploads:
-            result.append({
-                'id': str(upload.id),
-                'file_name': upload.file_name,
-                'upload_date': upload.upload_date,
-                'file_size': upload.file_size,
-                'row_count': upload.row_count,
-                'processed': upload.processed,
-                'processed_date': upload.processed_date
-            })
-
-        return Response(result)
-
-    def retrieve(self, request, pk=None):
-        """
-        Get details of a specific upload
-        """
-        try:
-            upload = RawDataUpload.objects.get(id=pk)
-        except RawDataUpload.DoesNotExist:
-            raise Http404
-
-        return Response({
-            'id': str(upload.id),
-            'file_name': upload.file_name,
-            'upload_date': upload.upload_date,
-            'file_size': upload.file_size,
-            'row_count': upload.row_count,
-            'processed': upload.processed,
-            'processed_date': upload.processed_date
-        })
-
-    @action(detail=False, methods=['post'])
-    def upload_csv(self, request):
-        """
-        Upload a CSV file for processing
-        """
-        try:
-            if 'file' not in request.FILES:
+            file = request.FILES.get('file')
+            if not file:
                 return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-            csv_file = request.FILES['file']
-
-            if not csv_file.name.endswith('.csv'):
-                return Response({'error': 'File must be a CSV'}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Calculate file hash and check for duplicates
-            file_hash = self._calculate_file_hash(csv_file)
-            csv_file.seek(0)  # Reset file pointer to beginning after calculating hash
+            # Read CSV file
+            df = pd.read_csv(file)
             
-            existing_upload = RawDataUpload.objects(file_hash=file_hash).first()
-            if existing_upload:
-                return Response({
-                    'error': 'This file has already been uploaded',
-                    'upload_date': existing_upload.upload_date,
-                    'file_name': existing_upload.file_name
-                }, status=status.HTTP_400_BAD_REQUEST)
+            # Process data and store in respective collections
+            for index, row in df.iterrows():
+                # Create or update customer
+                customer_data = {
+                    'customer_id': row['customer_id'],
+                    'gender': row['gender'],
+                    'age': row['age'],
+                    'city': row['city']
+                }
+                Customer.objects(customer_id=row['customer_id']).update_one(
+                    upsert=True, **customer_data)
 
-            # Create a new RawDataUpload instance
-            upload = RawDataUpload(
-                file_name=csv_file.name,
-                upload_date=datetime.datetime.now(),
-                file_size=csv_file.size,
-                file_hash=file_hash,
-                processed=False
-            )
+                # Create or update product
+                product_data = {
+                    'product_id': row['product_id'],
+                    'product_name': row['product_name'],
+                    'category_id': row['category_id'],
+                    'category_name': row['category_name'],
+                    'price': row['price']
+                }
+                Product.objects(product_id=row['product_id']).update_one(
+                    upsert=True, **product_data)
 
-            try:
-                # Read CSV data
-                df = pd.read_csv(csv_file)
-            except pd.errors.EmptyDataError:
-                return Response({'error': 'The CSV file is empty'}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                return Response({'error': f'Error reading CSV file: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-                
-            # Validate required columns
-            required_columns = ['customer_id', 'order_date', 'product_id', 'product_name', 
-                              'category_name', 'quantity', 'price', 'payment_method', 'city']
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                return Response({
-                    'error': f'Missing required columns: {", ".join(missing_columns)}'
-                }, status=status.HTTP_400_BAD_REQUEST)
+                # Create new order
+                order_data = {
+                    'order_id': row['order_id'],
+                    'order_date': row['order_date'],
+                    'customer_id': Customer.objects.get(customer_id=row['customer_id']),
+                    'product_id': Product.objects.get(product_id=row['product_id']),
+                    'quantity': row['quantity'],
+                    'review_score': row.get('review_score')
+                }
+                Order(**order_data).save()
 
-            upload.row_count = len(df)
-            upload.save()
+                # Create sales record
+                sales_data = {
+                    'id': f"SALE-{row['order_id']}",
+                    'customer_id': str(row['customer_id']),
+                    'product_id': str(row['product_id']),
+                    'quantity': row['quantity'],
+                    'sale_date': row['order_date'],
+                    'revenue': float(row['quantity'] * row['price']),
+                    'profit': float(row['quantity'] * row['price'] * 0.3),  # 30% profit margin
+                    'city': row['city']
+                }
+                Sales.objects(id=sales_data['id']).update_one(upsert=True, **sales_data)
 
-            successful_records = 0
-            errors = []
+            # Trigger analytics calculations
+            self.update_analytics()
 
-            # Get MongoDB connection
-            db = connect(
-                db=settings.MONGODB_NAME,
-                host=settings.MONGODB_URI,
-                connect=False
-            )
-            
-            # Start a transaction session
-            with db.start_session() as session:
-                session.start_transaction()
-                
-                try:
-                    # Process and store data in MongoDB
-                    for index, row in df.iterrows():
-                        try:
-                            # Create or update Customer with all fields
-                            customer_data = {
-                                'customer_id': str(row['customer_id']),
-                                'name': f'Customer_{row["customer_id"]}',  # Generate default name
-                                'email': f'customer_{row["customer_id"]}@example.com',  # Generate default email
-                                'gender': str(row['gender']).title() if pd.notna(row['gender']) else None,
-                                'age': int(row['age']) if pd.notna(row['age']) else None,
-                                'location': row['city'],
-                                'registration_date': datetime.datetime.now()  # Set current time as registration
-                            }
-                            
-                            try:
-                                customer = Customer.objects(customer_id=customer_data['customer_id']).modify(
-                                    upsert=True,
-                                    new=True,
-                                    set__name=customer_data['name'],
-                                    set__email=customer_data['email'],
-                                    set__gender=customer_data['gender'],
-                                    set__age=customer_data['age'],
-                                    set__location=customer_data['location'],
-                                    set_on_insert__registration_date=customer_data['registration_date']
-                                )
-                            except ValidationError as e:
-                                logger.error(f"Customer validation error: {str(e)}")
-                                raise
-
-                            # Create or update Product
-                            product_data = {
-                                'product_id': str(row['product_id']),
-                                'name': row['product_name'],
-                                'category': row['category_name'],
-                                'price': Decimal(str(row['price'])),
-                            }
-                            
-                            # Include rating if available
-                            if 'review_score' in row and pd.notna(row['review_score']):
-                                product_data['rating'] = float(row['review_score'])
-                            
-                            try:
-                                product = Product.objects(product_id=product_data['product_id']).modify(
-                                    upsert=True,
-                                    new=True,
-                                    set__name=product_data['name'],
-                                    set__category=product_data['category'],
-                                    set__price=product_data['price'],
-                                    set__rating=product_data.get('rating')
-                                )
-                            except ValidationError as e:
-                                logger.error(f"Product validation error: {str(e)}")
-                                raise
-
-                            # Create Order with OrderItem
-                            try:
-                                order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
-                                order = Order(
-                                    order_id=order_id,
-                                    customer=customer,
-                                    order_date=datetime.datetime.strptime(row['order_date'], '%Y-%m-%d'),
-                                    payment_method=row['payment_method'],
-                                    order_status='Delivered'  # Set a default status
-                                )
-
-                                order_item = OrderItem(
-                                    product=product,
-                                    quantity=int(row['quantity']),
-                                    price=Decimal(str(row['price']))
-                                )
-
-                                order.items = [order_item]
-                                
-                                # Calculate total amount
-                                order.total_amount = order_item.price * order_item.quantity
-                                order.save()
-
-                                # Update customer's last purchase date
-                                customer.update(set__last_purchase_date=order.order_date)
-                            except ValidationError as e:
-                                logger.error(f"Order validation error: {str(e)}")
-                                raise
-
-                            successful_records += 1
-
-                        except (ValidationError, NotUniqueError) as e:
-                            errors.append(f"Error in row {index + 1}: {str(e)}")
-                            continue
-                        except Exception as e:
-                            logger.error(f"Unexpected error processing row {index + 1}: {str(e)}")
-                            errors.append(f"Unexpected error in row {index + 1}: {str(e)}")
-                            continue
-
-                    # Commit transaction if all went well
-                    session.commit_transaction()
-                    
-                except Exception as e:
-                    # Rollback transaction on error
-                    session.abort_transaction()
-                    logger.error(f"Transaction error: {str(e)}")
-                    upload.delete()
-                    return Response({
-                        'error': f'Database transaction error: {str(e)}'
-                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Mark upload as processed
-            upload.processed = True
-            upload.processed_date = datetime.datetime.now()
-            upload.save()
-
-            response_data = {
-                'message': 'File uploaded and processed',
-                'upload_id': str(upload.id),
-                'total_rows': upload.row_count,
-                'successful_records': successful_records,
-                'failed_records': len(errors)
-            }
-
-            if errors:
-                response_data['errors'] = errors[:10]  # Show first 10 errors only
-                if len(errors) > 10:
-                    response_data['note'] = f'Showing first 10 of {len(errors)} errors'
-
-            return Response(response_data, 
-                          status=status.HTTP_201_CREATED if successful_records > 0 
-                          else status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Data uploaded and processed successfully'})
 
         except Exception as e:
-            logger.error(f"Upload processing error: {str(e)}")
-            if 'upload' in locals() and upload:
-                upload.delete()  # Clean up the upload record if processing fails
-            return Response({
-                'error': f'Error processing file: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Error processing data upload: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['post'])
-    def process(self, request, pk=None):
-        """
-        Process a previously uploaded CSV file
-        """
+    def update_analytics(self):
+        """Update all analytics collections based on current data"""
         try:
-            upload = RawDataUpload.objects.get(id=pk)
-        except RawDataUpload.DoesNotExist:
-            raise Http404
+            # Update sales trends
+            self.update_sales_trends()
+            
+            # Update product performance
+            self.update_product_performance()
+            
+            # Update category performance
+            self.update_category_performance()
+            
+            # Update demographics
+            self.update_demographics()
+            
+            # Update geographical insights
+            self.update_geographical_insights()
+            
+            # Update customer behavior
+            self.update_customer_behavior()
 
-        if upload.processed:
-            return Response({'error': 'This file has already been processed'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error updating analytics: {str(e)}")
 
-        # Update the upload record to mark as processed
-        upload.processed = True
-        upload.processed_date = datetime.datetime.now()
-        upload.save()
+    def update_sales_trends(self):
+        """Update sales trends analytics"""
+        sales_data = Sales.objects().all()
+        # Implementation for sales trends calculation
+        pass
 
-        return Response({'message': 'File processing completed'}, status=status.HTTP_200_OK)
+    def update_product_performance(self):
+        """Update product performance analytics"""
+        sales_data = Sales.objects().all()
+        # Implementation for product performance calculation
+        pass
+
+    def update_category_performance(self):
+        """Update category performance analytics"""
+        sales_data = Sales.objects().all()
+        # Implementation for category performance calculation
+        pass
+
+    def update_demographics(self):
+        """Update demographics analytics"""
+        customer_data = Customer.objects().all()
+        # Implementation for demographics calculation
+        pass
+
+    def update_geographical_insights(self):
+        """Update geographical insights analytics"""
+        sales_data = Sales.objects().all()
+        # Implementation for geographical insights calculation
+        pass
+
+    def update_customer_behavior(self):
+        """Update customer behavior analytics"""
+        orders_data = Order.objects().all()
+        # Implementation for customer behavior calculation
+        pass

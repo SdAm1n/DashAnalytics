@@ -68,30 +68,52 @@ DashAnalytics{% endblock %} {% block content %}
 <!-- World Map -->
 <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        Sales Distribution by Country
+        Sales Distribution by City
     </h3>
     <div class="h-96">
         <div id="world-map" class="w-full h-full"></div>
     </div>
 </div>
 
-<!-- Top Countries & Cities -->
+<!-- City Analysis Grid -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Top Cities by Customer Count -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Top Countries by Sales
+            Top Cities by Customer Count
         </h3>
         <div class="h-80">
-            <canvas id="countriesChart"></canvas>
+            <canvas id="topCustomersChart"></canvas>
         </div>
     </div>
 
+    <!-- Bottom Cities by Customer Count -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Top Cities by Sales
+            Bottom Cities by Customer Count
         </h3>
         <div class="h-80">
-            <canvas id="citiesChart"></canvas>
+            <canvas id="bottomCustomersChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Cities by Profit -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Top Cities by Total Profit
+        </h3>
+        <div class="h-80">
+            <canvas id="topProfitChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Cities by Highest Loss -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Cities by Highest Loss
+        </h3>
+        <div class="h-80">
+            <canvas id="topLossChart"></canvas>
         </div>
     </div>
 </div>
@@ -182,6 +204,7 @@ DashAnalytics{% endblock %} {% block content %}
 <script>
     // Chart objects
     let worldMap, countriesChart, citiesChart;
+    let topCustomersChart, bottomCustomersChart, topProfitChart, topLossChart;
 
     document.addEventListener("DOMContentLoaded", function () {
         // Load initial data
@@ -243,46 +266,125 @@ DashAnalytics{% endblock %} {% block content %}
 
     function fetchGeographicalData() {
         showLoading();
-
-        const period = document.getElementById("period-select").value;
-        const region = document.getElementById("region-select").value;
-
-        // In a real app, this would be an API call
-        // fetch(`/api/geographical-insights?period=${period}&region=${region}`)
-
-        setTimeout(() => {
-            try {
-                // Generate mock data
-                const mapData = generateMapData();
-                const countriesData = generateCountriesData();
-                const citiesData = generateCitiesData();
-                const regionsData = generateRegionsData();
-
-                // Render visualizations one by one with delays to prevent UI freeze
-                setTimeout(() => {
-                    renderWorldMap(mapData);
-
-                    setTimeout(() => {
-                        renderCountriesChart(countriesData);
-
-                        setTimeout(() => {
-                            renderCitiesChart(citiesData);
-
-                            setTimeout(() => {
-                                renderRegionsTable(regionsData);
-                                hideLoading();
-                            }, 50);
-                        }, 50);
-                    }, 50);
-                }, 50);
-            } catch (error) {
-                console.error("Error rendering visualizations:", error);
+        fetch('/api/geographical-insights/')
+            .then(response => response.json())
+            .then(data => {
+                renderCityCustomersCharts(data.cityCustomers);
+                renderCityProfitCharts(data.cityProfit);
                 hideLoading();
-                alert(
-                    "There was an error loading the geographical data. Please try again."
-                );
+            })
+            .catch(error => {
+                console.error("Error loading geographical data:", error);
+                hideLoading();
+                alert("Failed to load geographical insights. Please try again.");
+            });
+    }
+
+    function renderCityCustomersCharts(data) {
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Customers'
+                    }
+                }
             }
-        }, 300);
+        };
+
+        // Top Cities Chart
+        const topCtx = document.getElementById('topCustomersChart').getContext('2d');
+        if (topCustomersChart) topCustomersChart.destroy();
+        topCustomersChart = new Chart(topCtx, {
+            type: 'bar',
+            data: {
+                labels: data.top.labels,
+                datasets: [{
+                    label: 'Top Cities by Customer Count',
+                    data: data.top.data,
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: '#3b82f6',
+                    borderWidth: 1
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Bottom Cities Chart
+        const bottomCtx = document.getElementById('bottomCustomersChart').getContext('2d');
+        if (bottomCustomersChart) bottomCustomersChart.destroy();
+        bottomCustomersChart = new Chart(bottomCtx, {
+            type: 'bar',
+            data: {
+                labels: data.bottom.labels,
+                datasets: [{
+                    label: 'Bottom Cities by Customer Count',
+                    data: data.bottom.data,
+                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                    borderColor: '#ef4444',
+                    borderWidth: 1
+                }]
+            },
+            options: chartOptions
+        });
+    }
+
+    function renderCityProfitCharts(data) {
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount ($)'
+                    },
+                    ticks: {
+                        callback: value => '$' + Math.abs(value).toLocaleString()
+                    }
+                }
+            }
+        };
+
+        // Top Cities by Profit Chart
+        const profitCtx = document.getElementById('topProfitChart').getContext('2d');
+        if (topProfitChart) topProfitChart.destroy();
+        topProfitChart = new Chart(profitCtx, {
+            type: 'bar',
+            data: {
+                labels: data.profit.labels,
+                datasets: [{
+                    label: 'Total Profit',
+                    data: data.profit.data,
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                    borderColor: '#10b981',
+                    borderWidth: 1
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Cities by Loss Chart
+        const lossCtx = document.getElementById('topLossChart').getContext('2d');
+        if (topLossChart) topLossChart.destroy();
+        topLossChart = new Chart(lossCtx, {
+            type: 'bar',
+            data: {
+                labels: data.loss.labels,
+                datasets: [{
+                    label: 'Total Loss',
+                    data: data.loss.data,
+                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                    borderColor: '#ef4444',
+                    borderWidth: 1
+                }]
+            },
+            options: chartOptions
+        });
     }
 
     // Data generator functions

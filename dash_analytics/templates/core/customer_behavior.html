@@ -104,11 +104,6 @@ Analytics{% endblock %} {% block content %}
                         <th
                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                         >
-                            Name
-                        </th>
-                        <th
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
                             Total Purchases
                         </th>
                         <th
@@ -129,7 +124,7 @@ Analytics{% endblock %} {% block content %}
                 >
                     <tr>
                         <td
-                            colspan="5"
+                            colspan="4"
                             class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
                         >
                             <div class="flex items-center justify-center">
@@ -229,35 +224,30 @@ Analytics{% endblock %} {% block content %}
             const sampleData = [
                 {
                     id: "C001",
-                    name: "John Doe",
                     purchases: 23,
                     avg_value: "$245.67",
                     loyalty: "High",
                 },
                 {
                     id: "C002",
-                    name: "Jane Smith",
                     purchases: 18,
                     avg_value: "$187.32",
                     loyalty: "Medium",
                 },
                 {
                     id: "C003",
-                    name: "Robert Brown",
                     purchases: 34,
                     avg_value: "$312.45",
                     loyalty: "High",
                 },
                 {
                     id: "C004",
-                    name: "Mary Johnson",
                     purchases: 12,
                     avg_value: "$156.78",
                     loyalty: "Medium",
                 },
                 {
                     id: "C005",
-                    name: "David Williams",
                     purchases: 8,
                     avg_value: "$98.45",
                     loyalty: "Low",
@@ -270,7 +260,6 @@ Analytics{% endblock %} {% block content %}
 
                 row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.id}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.name}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.purchases}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.avg_value}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${customer.loyalty}</td>

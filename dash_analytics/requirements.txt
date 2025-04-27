@@ -19,3 +19,4 @@ djangorestframework-simplejwt==5.3.0
 pymongo==4.5.0
 bcrypt==4.0.1
 setuptools>=79.0.1
+blinker==1.6.0

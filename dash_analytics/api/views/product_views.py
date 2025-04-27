@@ -1,9 +1,13 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from core.models import Product, Order
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Sum, Avg, F, Count
+from django.db.models.functions import TruncDate
+from core.models import Product, Order, OrderItem
 from api.serializers import ProductSerializer
 from django.http import Http404
+from datetime import datetime, timedelta
 
 class ProductViewSet(viewsets.ViewSet):
     """
@@ -169,3 +173,152 @@ class ProductViewSet(viewsets.ViewSet):
                 pass
 
         return Response(result)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_product_performance(request):
+    period = request.GET.get('period', '1y')
+    category = request.GET.get('category', 'all')
+    
+    # Calculate date range
+    end_date = datetime.now()
+    if period == '7d':
+        start_date = end_date - timedelta(days=7)
+    elif period == '30d':
+        start_date = end_date - timedelta(days=30)
+    elif period == '90d':
+        start_date = end_date - timedelta(days=90)
+    elif period == '1y':
+        start_date = end_date - timedelta(days=365)
+    else:  # 'all'
+        start_date = None
+    
+    # Base query
+    base_query = OrderItem.objects.filter(order__status='completed')
+    if start_date:
+        base_query = base_query.filter(order__order_date__gte=start_date)
+    if category != 'all':
+        base_query = base_query.filter(product__category=category)
+    
+    # Best selling products (by revenue)
+    best_selling = (base_query
+        .values('product__name')
+        .annotate(
+            revenue=Sum(F('quantity') * F('unit_price')),
+            name=F('product__name')
+        )
+        .order_by('-revenue')[:10])
+    
+    # Category performance
+    category_performance = (base_query
+        .values('product__category')
+        .annotate(
+            category=F('product__category'),
+            total_sales=Sum(F('quantity') * F('unit_price'))
+        )
+        .order_by('-total_sales'))
+    
+    # Volume metrics
+    volume_data = (base_query
+        .values('product__name')
+        .annotate(
+            name=F('product__name'),
+            quantity=Sum('quantity')
+        )
+        .order_by('-quantity')[:10])
+    
+    # Average revenue per product
+    avg_revenue = (base_query
+        .values('product__name')
+        .annotate(
+            name=F('product__name'),
+            avg_revenue=Avg(F('quantity') * F('unit_price'))
+        )
+        .order_by('-avg_revenue')[:10])
+    
+    # Calculate growth rates and trends
+    if start_date:
+        mid_date = start_date + (end_date - start_date) / 2
+        recent_sales = base_query.filter(order__order_date__gte=mid_date)
+        older_sales = base_query.filter(order__order_date__lt=mid_date)
+    
+    # Best product metrics
+    best_product = list(best_selling)[0] if best_selling else None
+    if best_product:
+        if start_date:
+            recent_revenue = recent_sales.filter(
+                product__name=best_product['name']
+            ).aggregate(
+                revenue=Sum(F('quantity') * F('unit_price'))
+            )['revenue'] or 0
+            
+            older_revenue = older_sales.filter(
+                product__name=best_product['name']
+            ).aggregate(
+                revenue=Sum(F('quantity') * F('unit_price'))
+            )['revenue'] or 0
+            
+            growth = ((recent_revenue - older_revenue) / older_revenue * 100) if older_revenue else 0
+            best_product['growth'] = round(growth, 1)
+    
+    # Top category metrics
+    top_category = list(category_performance)[0] if category_performance else None
+    if top_category:
+        total_sales = sum(cat['total_sales'] for cat in category_performance)
+        top_category['market_share'] = round((top_category['total_sales'] / total_sales) * 100, 1)
+    
+    # Top volume product metrics
+    top_volume = list(volume_data)[0] if volume_data else None
+    if top_volume:
+        total_volume = sum(prod['quantity'] for prod in volume_data)
+        top_volume['percentage'] = round((top_volume['quantity'] / total_volume) * 100, 1)
+    
+    # Detailed product performance
+    detailed_performance = []
+    for product in best_selling[:20]:  # Top 20 products
+        if start_date:
+            recent_data = recent_sales.filter(
+                product__name=product['name']
+            ).aggregate(
+                revenue=Sum(F('quantity') * F('unit_price')),
+                units=Sum('quantity')
+            )
+            
+            older_data = older_sales.filter(
+                product__name=product['name']
+            ).aggregate(
+                revenue=Sum(F('quantity') * F('unit_price')),
+                units=Sum('quantity')
+            )
+            
+            trend = ((recent_data['revenue'] or 0) - (older_data['revenue'] or 0)) / (older_data['revenue'] or 1) * 100
+        else:
+            trend = 0
+            
+        product_details = base_query.filter(
+            product__name=product['name']
+        ).aggregate(
+            units_sold=Sum('quantity'),
+            total_revenue=Sum(F('quantity') * F('unit_price')),
+            avg_price=Avg('unit_price')
+        )
+        
+        detailed_performance.append({
+            'name': product['name'],
+            'category': base_query.filter(product__name=product['name']).first().product.category,
+            'units_sold': product_details['units_sold'],
+            'revenue': product_details['total_revenue'],
+            'avg_price': product_details['avg_price'],
+            'trend': round(trend, 1)
+        })
+    
+    return Response({
+        'best_selling': list(best_selling),
+        'category_performance': list(category_performance),
+        'volume_data': list(volume_data),
+        'avg_revenue': list(avg_revenue),
+        'best_product': best_product,
+        'top_category': top_category,
+        'top_volume': top_volume,
+        'detailed_performance': detailed_performance
+    })

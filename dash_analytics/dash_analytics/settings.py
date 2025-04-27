@@ -14,7 +14,6 @@ from mongoengine import connect
 from pathlib import Path
 import os
 from decouple import config
-from pymongo import MongoClient
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -126,12 +125,10 @@ MONGODB_URI = f'mongodb://{MONGODB_HOST}:{MONGODB_PORT}/{MONGODB_NAME}'
 connect(
     db=MONGODB_NAME,
     host=MONGODB_URI,
-    connect=False  # Defer connection until needed
+    connect=True,  # Enable immediate connection
+    tz_aware=True,  # Make sure datetime objects are timezone-aware
+    uuidRepresentation='standard'
 )
-
-MONGO_CLIENT = MongoClient(MONGODB_URI)
-MONGO_DB = MONGO_CLIENT[MONGODB_NAME]
-MONGO_USERS_COLLECTION = MONGO_DB["users"]
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
