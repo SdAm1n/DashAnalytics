@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div id="auth-alerts" style="max-width: 450px; margin: 20px auto;"></div>
+
+    <div class="auth-container">
+        <h1>Login to Account</h1>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" required>
+                    <span class="toggle-password">👁️</span>
+                </div>
+            </div>
+            <button type="submit" class="auth-btn">Login</button>
+        </form>
+        <p class="auth-link">Don't have an account? <a href="signup.html">Sign Up</a></p>
+    </div>
+
+    
+    <script>
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const alertDiv = document.getElementById('auth-alerts');
+            if (localStorage.getItem('signupSuccess')) {
+                alertDiv.innerHTML = `
+                    <div class="alert success" style="padding:12px;background:#d4edda;color:#155724;border-radius:4px;margin-bottom:20px;">
+                        ✓ Signup successful! Please login with your new credentials
+                    </div>
+                `;
+                localStorage.removeItem('signupSuccess');
+                
+               
+                const tempEmail = localStorage.getItem('tempEmail');
+                if (tempEmail) {
+                    document.getElementById('email').value = tempEmail;
+                }
+            }
+        });
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>

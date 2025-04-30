@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = '../auth/login.html';
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="geographical-insights.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>DashAnalytics - Geographical Insights</title>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">DashAnalytics</div>
+            </div>
+            <div class="sidebar-menu">
+                <div class="menu-item">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-box"></i>
+                    Products Performance
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-chart-line"></i>
+                    Sales Trend
+                </div>
+                <div class="menu-item active">
+                    <i class="fas fa-globe"></i>
+                    Geographical Insight
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-tags"></i>
+                    Pricing Analysis
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-users"></i>
+                    Team
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="menu-item">
+                    <i class="fas fa-user"></i>
+                    Profile
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </div>
+                <div class="menu-item logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </div>
+            </div>
+        </div>
+       
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="page-title">Geographical Insights</div>
+                <div class="search-bar">
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search...">
+                    </div>
+                    <div class="top-icons">
+                        <div class="icon-btn">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge"></span>
+                        </div>
+                        <div class="icon-btn">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="icon-btn">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+           
+            <div class="geographical-insights-grid">
+                <!-- Monthly Sales Chart -->
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            Sales in Outlets Monthly
+                        </div>
+                        <div class="chart-controls">
+                            <select id="monthSelector" class="chart-select">
+                                <option value="all">All Months</option>
+                                <option value="jan">January</option>
+                                <option value="feb">February</option>
+                                <option value="mar">March</option>
+                                <option value="apr">April</option>
+                                <option value="may">May</option>
+                                <option value="jun">June</option>
+                                <option value="jul">July</option>
+                                <option value="aug">August</option>
+                                <option value="sep">September</option>
+                                <option value="oct">October</option>
+                                <option value="nov">November</option>
+                                <option value="dec">December</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="monthlySalesChart"></canvas>
+                    </div>
+                    <div class="chart-options">
+                        <div class="sales-option active" data-metric="units">Units Sold</div>
+                        <div class="sales-option" data-metric="revenue">Revenue</div>
+                        <div class="sales-option" data-metric="profit">Profit</div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-calendar"></i>
+                            Sales in Outlets Yearly
+                        </div>
+                        <div class="chart-controls">
+                            <select id="yearSelector" class="chart-select">
+                                <option value="all">All Years</option>
+                                <option value="2020">2020</option>
+                                <option value="2021">2021</option>
+                                <option value="2022">2022</option>
+                                <option value="2023">2023</option>
+                                <option value="2024">2024</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="yearlySalesChart"></canvas>
+                    </div>
+                    <div class="chart-options">
+                        <div class="sales-option active" data-metric="units">Units Sold</div>
+                        <div class="sales-option" data-metric="revenue">Revenue</div>
+                        <div class="sales-option" data-metric="profit">Profit</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="geographical-insights.js"></script>
+</body>
+</html>

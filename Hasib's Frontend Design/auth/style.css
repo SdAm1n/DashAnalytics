@@ -1,0 +1,195 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #4361ee; /* Blue background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.auth-container {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-container h1 {
+    font-size: 28px;
+    margin-bottom: 10px;
+    color: #333;
+    text-align: center;
+}
+
+.subtitle {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 15px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #555;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: all 0.3s;
+}
+
+.form-group input:focus {
+    border-color: #4361ee;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    outline: none;
+}
+
+.password-wrapper {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none;
+    font-size: 18px;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.toggle-password:hover {
+    opacity: 1;
+}
+
+.forgot-password {
+    text-align: right;
+    margin-top: 8px;
+}
+
+.forgot-password a {
+    color: #4361ee;
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.forgot-password a:hover {
+    color: #3a56d4;
+    text-decoration: underline;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    margin: 25px 0;
+}
+
+.checkbox-group input {
+    margin-right: 10px;
+    width: auto;
+}
+
+.checkbox-group label {
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 14px;
+    background-color: #4361ee;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 20px;
+}
+
+.auth-btn:hover {
+    background-color: #3a56d4;
+}
+
+.auth-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 15px;
+    color: #666;
+}
+
+.auth-link a {
+    color: #4361ee;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s;
+}
+
+.auth-link a:hover {
+    color: #3a56d4;
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 30px 20px;
+    }
+    
+    body {
+        padding: 15px;
+    }
+    
+    .auth-container h1 {
+        font-size: 24px;
+    }
+    
+    .form-group input {
+        padding: 12px 14px;
+    }
+    
+    .auth-btn {
+        padding: 12px;
+    }
+}
+.alert {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}

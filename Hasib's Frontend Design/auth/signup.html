@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h1>Create an Account</h1>
+        <form id="signupForm">
+            
+            <div class="form-group">
+                <label for="email">Email address:</label>
+                <input type="email" id="email" value="" required>
+            </div>
+           
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" value="" required>
+            </div>
+           
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" required>
+                    <span class="toggle-password">👁️</span>
+                </div>
+            </div>
+           
+            <div class="checkbox-group">
+                <input type="checkbox" id="terms" required>
+                <label for="terms">I accept terms and conditions</label>
+            </div>
+
+            <button type="submit" class="auth-btn">Sign Up</button>
+        </form>
+        <p class="auth-link">Already have an account? <a href="login.html">Login</a></p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

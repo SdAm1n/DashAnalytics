@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        if (localStorage.getItem('isLoggedIn') === 'true') {
+            window.location.href = 'dashboard/index.html';
+        } else {
+            window.location.href = 'auth/login.html';
+        }
+    </script>
+</head>
+<body>
+    Redirecting...
+</body>
+</html>
