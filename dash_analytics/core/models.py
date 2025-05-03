@@ -62,33 +62,38 @@ class MongoUser(Document):
         return True
 
 class Customer(Document):
-    customer_id = fields.IntField(required=True, primary_key=True)
+    customer_id = fields.IntField(required=True, unique=True)
     gender = fields.StringField(required=True)
     age = fields.IntField(required=True)
     city = fields.StringField(required=True)
-    meta = {'collection': 'customers'}
+    meta = {
+        'collection': 'customers',
+        'indexes': ['customer_id']
+    }
 
 class Product(Document):
-    product_id = fields.IntField(required=True, primary_key=True)
-    product_name = fields.StringField(required=True)
+    product_id = fields.IntField(required=True, unique=True)
     category_id = fields.IntField(required=True)
     category_name = fields.StringField(required=True)
+    product_name = fields.StringField(required=True)
     price = fields.FloatField(required=True)
-    meta = {'collection': 'products'}
+    meta = {
+        'collection': 'products',
+        'indexes': ['product_id']
+    }
 
 class Order(Document):
-    order_id = fields.StringField(primary_key=True)
-    order_date = fields.DateTimeField(default=datetime.now)
+    order_id = fields.StringField(required=True, unique=True)
+    order_date = fields.DateTimeField(default=datetime.utcnow)
+    quantity = fields.IntField(required=True)
+    payment_method = fields.StringField()
+    review_score = fields.FloatField()
     customer_id = fields.ReferenceField(Customer, required=True)
     product_id = fields.ReferenceField(Product, required=True)
-    quantity = fields.IntField(required=True)
-    review_score = fields.FloatField()
-    meta = {'collection': 'orders'}
-
-class OrderItem(EmbeddedDocument):
-    product = fields.ReferenceField(Product, required=True)
-    quantity = fields.IntField(required=True, min_value=1)
-    unit_price = fields.DecimalField(precision=2, required=True)
+    meta = {
+        'collection': 'orders',
+        'indexes': ['order_id', 'customer_id', 'product_id']
+    }
 
 class Sales(Document):
     id = fields.StringField(primary_key=True)
@@ -104,12 +109,8 @@ class Sales(Document):
 class RawDataUpload(Document):
     file_name = fields.StringField(required=True)
     upload_date = fields.DateTimeField(default=datetime.utcnow)
-    status = fields.StringField(choices=['pending', 'processing', 'completed', 'failed'])
+    status = fields.StringField(choices=['pending', 'processing', 'completed', 'failed'], default='pending')
     error_message = fields.StringField()
     processed_records = fields.IntField(default=0)
+    total_records = fields.IntField(default=0)
     meta = {'collection': 'raw_data_uploads'}
-
-class UserProfile(Document):
-    user = fields.ReferenceField(MongoUser, required=True, unique=True)
-    theme_preference = fields.StringField(choices=['light', 'dark'], default='light')
-    meta = {'collection': 'user_profiles'}

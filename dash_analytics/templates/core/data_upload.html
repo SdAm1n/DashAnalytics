@@ -247,8 +247,8 @@
             progressBar.style.width = "0%";
             progressText.textContent = "Uploading file...";
 
-            // Make the actual API call
-            fetch('/api/data-uploads/upload_csv/', {
+            // Make the API call
+            fetch('/api/upload/', {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -259,15 +259,10 @@
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(data => {
-                        if (data.error && data.upload_date) {
-                            // This is a duplicate file error with details
-                            showAlert(data.error, 'error', {
-                                upload_date: data.upload_date,
-                                file_name: data.file_name
-                            });
-                        } else {
-                            throw new Error(data.error || 'Upload failed');
+                        if (response.status === 409) { // Conflict - duplicate file
+                            throw new Error(data.error, { cause: data.details });
                         }
+                        throw new Error(data.error || 'Upload failed');
                     });
                 }
                 return response.json();
@@ -285,7 +280,12 @@
             })
             .catch(error => {
                 processingModal.classList.add('hidden');
-                showAlert('Error uploading file: ' + error.message, 'error');
+                if (error.cause) {
+                    // Show detailed duplicate file error
+                    showAlert(error.message, 'error', error.cause);
+                } else {
+                    showAlert(error.message || 'Error uploading file', 'error');
+                }
             });
         });
 
@@ -426,7 +426,7 @@
 
         // Load previous uploads
         function loadPreviousUploads() {
-            fetch("/api/data-uploads/")
+            fetch("/api/upload/")
                 .then((response) => response.json())
                 .then((data) => {
                     updatePreviousUploadsTable(data);

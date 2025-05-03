@@ -4,7 +4,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Avg, F, Count
 from django.db.models.functions import TruncDate
-from core.models import Product, Order, OrderItem
+from core.models import Product, Order
 from api.serializers import ProductSerializer
 from django.http import Http404
 from datetime import datetime, timedelta
@@ -109,13 +109,14 @@ class ProductViewSet(viewsets.ViewSet):
         """
         # Get total sales per product
         product_sales = Order.objects.aggregate([
-            {"$unwind": "$items"},
-            {"$group": {
-                "_id": "$items.product",
-                "total_quantity": {"$sum": "$items.quantity"},
-                "total_revenue": {"$sum": {"$multiply": ["$items.price", "$items.quantity"]}},
-                "orders_count": {"$sum": 1},
-            }}
+            {
+                "$group": {
+                    "_id": "$product_id",
+                    "total_quantity": {"$sum": "$quantity"},
+                    "total_revenue": {"$sum": {"$multiply": ["$quantity", "$product_id.price"]}},
+                    "orders_count": {"$sum": 1},
+                }
+            }
         ])
 
         # Enhance with product details
@@ -147,12 +148,13 @@ class ProductViewSet(viewsets.ViewSet):
 
         # Get top sellers by quantity
         top_sellers = Order.objects.aggregate([
-            {"$unwind": "$items"},
-            {"$group": {
-                "_id": "$items.product",
-                "total_quantity": {"$sum": "$items.quantity"},
-                "total_revenue": {"$sum": {"$multiply": ["$items.price", "$items.quantity"]}},
-            }},
+            {
+                "$group": {
+                    "_id": "$product_id",
+                    "total_quantity": {"$sum": "$quantity"},
+                    "total_revenue": {"$sum": {"$multiply": ["$quantity", "$product_id.price"]}},
+                }
+            },
             {"$sort": {"total_quantity": -1}},
             {"$limit": limit}
         ])
@@ -194,131 +196,48 @@ def get_product_performance(request):
         start_date = None
     
     # Base query
-    base_query = OrderItem.objects.filter(order__status='completed')
+    base_query = Order.objects
     if start_date:
-        base_query = base_query.filter(order__order_date__gte=start_date)
-    if category != 'all':
-        base_query = base_query.filter(product__category=category)
+        base_query = base_query.filter(order_date__gte=start_date)
     
-    # Best selling products (by revenue)
-    best_selling = (base_query
-        .values('product__name')
-        .annotate(
-            revenue=Sum(F('quantity') * F('unit_price')),
-            name=F('product__name')
-        )
-        .order_by('-revenue')[:10])
-    
-    # Category performance
-    category_performance = (base_query
-        .values('product__category')
-        .annotate(
-            category=F('product__category'),
-            total_sales=Sum(F('quantity') * F('unit_price'))
-        )
-        .order_by('-total_sales'))
-    
-    # Volume metrics
-    volume_data = (base_query
-        .values('product__name')
-        .annotate(
-            name=F('product__name'),
-            quantity=Sum('quantity')
-        )
-        .order_by('-quantity')[:10])
-    
-    # Average revenue per product
-    avg_revenue = (base_query
-        .values('product__name')
-        .annotate(
-            name=F('product__name'),
-            avg_revenue=Avg(F('quantity') * F('unit_price'))
-        )
-        .order_by('-avg_revenue')[:10])
+    # Best selling products (by quantity)
+    best_selling = list(base_query.aggregate([
+        {
+            '$group': {
+                '_id': '$product_id',
+                'total_quantity': {'$sum': '$quantity'},
+                'avg_revenue': {'$avg': {'$multiply': ['$quantity', {'$arrayElemAt': ['$product_id.price', 0]}]}}
+            }
+        },
+        {'$sort': {'total_quantity': -1}},
+        {'$limit': 10}
+    ]))
     
     # Calculate growth rates and trends
+    product_trends = {}
     if start_date:
         mid_date = start_date + (end_date - start_date) / 2
-        recent_sales = base_query.filter(order__order_date__gte=mid_date)
-        older_sales = base_query.filter(order__order_date__lt=mid_date)
-    
-    # Best product metrics
-    best_product = list(best_selling)[0] if best_selling else None
-    if best_product:
-        if start_date:
-            recent_revenue = recent_sales.filter(
-                product__name=best_product['name']
-            ).aggregate(
-                revenue=Sum(F('quantity') * F('unit_price'))
-            )['revenue'] or 0
+        for product in best_selling:
+            recent_sales = base_query.filter(
+                product_id=product['_id'],
+                order_date__gte=mid_date
+            ).aggregate(total={'$sum': '$quantity'})['total'] or 0
             
-            older_revenue = older_sales.filter(
-                product__name=best_product['name']
-            ).aggregate(
-                revenue=Sum(F('quantity') * F('unit_price'))
-            )['revenue'] or 0
+            older_sales = base_query.filter(
+                product_id=product['_id'],
+                order_date__lt=mid_date
+            ).aggregate(total={'$sum': '$quantity'})['total'] or 0
             
-            growth = ((recent_revenue - older_revenue) / older_revenue * 100) if older_revenue else 0
-            best_product['growth'] = round(growth, 1)
-    
-    # Top category metrics
-    top_category = list(category_performance)[0] if category_performance else None
-    if top_category:
-        total_sales = sum(cat['total_sales'] for cat in category_performance)
-        top_category['market_share'] = round((top_category['total_sales'] / total_sales) * 100, 1)
-    
-    # Top volume product metrics
-    top_volume = list(volume_data)[0] if volume_data else None
-    if top_volume:
-        total_volume = sum(prod['quantity'] for prod in volume_data)
-        top_volume['percentage'] = round((top_volume['quantity'] / total_volume) * 100, 1)
-    
-    # Detailed product performance
-    detailed_performance = []
-    for product in best_selling[:20]:  # Top 20 products
-        if start_date:
-            recent_data = recent_sales.filter(
-                product__name=product['name']
-            ).aggregate(
-                revenue=Sum(F('quantity') * F('unit_price')),
-                units=Sum('quantity')
-            )
+            if older_sales > 0:
+                growth = ((recent_sales - older_sales) / older_sales) * 100
+            else:
+                growth = 0
             
-            older_data = older_sales.filter(
-                product__name=product['name']
-            ).aggregate(
-                revenue=Sum(F('quantity') * F('unit_price')),
-                units=Sum('quantity')
-            )
-            
-            trend = ((recent_data['revenue'] or 0) - (older_data['revenue'] or 0)) / (older_data['revenue'] or 1) * 100
-        else:
-            trend = 0
-            
-        product_details = base_query.filter(
-            product__name=product['name']
-        ).aggregate(
-            units_sold=Sum('quantity'),
-            total_revenue=Sum(F('quantity') * F('unit_price')),
-            avg_price=Avg('unit_price')
-        )
-        
-        detailed_performance.append({
-            'name': product['name'],
-            'category': base_query.filter(product__name=product['name']).first().product.category,
-            'units_sold': product_details['units_sold'],
-            'revenue': product_details['total_revenue'],
-            'avg_price': product_details['avg_price'],
-            'trend': round(trend, 1)
-        })
+            product_trends[str(product['_id'])] = growth
+
+    response_data = {
+        'best_selling': best_selling,
+        'trends': product_trends
+    }
     
-    return Response({
-        'best_selling': list(best_selling),
-        'category_performance': list(category_performance),
-        'volume_data': list(volume_data),
-        'avg_revenue': list(avg_revenue),
-        'best_product': best_product,
-        'top_category': top_category,
-        'top_volume': top_volume,
-        'detailed_performance': detailed_performance
-    })
+    return Response(response_data)

@@ -22,8 +22,8 @@ class Command(BaseCommand):
         ]
 
         for collection in collections:
-            if collection._get_collection().count_documents({}) == 0:
-                # Create a dummy document and then delete it to initialize the collection
+            try:
+                # Create a dummy document to initialize the collection
                 dummy = collection()
                 for field in collection._fields:
                     if collection._fields[field].required:
@@ -53,13 +53,25 @@ class Command(BaseCommand):
                                                category_name='dummy', price=0.0)
                                 product.save()
                                 setattr(dummy, field, product)
-                try:
-                    dummy.save()
-                    dummy.delete()
-                    # Clean up any temporary documents we created for references
-                    if collection == Order:
-                        Customer.objects(customer_id=0).delete()
-                        Product.objects(product_id=0).delete()
-                    self.stdout.write(self.style.SUCCESS(f'Successfully initialized collection for {collection.__name__}'))
-                except Exception as e:
-                    self.stdout.write(self.style.ERROR(f'Failed to initialize {collection.__name__}: {str(e)}'))
+
+                # Save and delete the dummy document without background indexing
+                dummy.save()
+                dummy.delete()
+
+                # Clean up any temporary documents we created for references
+                if collection == Order:
+                    Customer.objects(customer_id=0).delete()
+                    Product.objects(product_id=0).delete()
+
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'Successfully initialized collection for {collection.__name__}'
+                    )
+                )
+
+            except Exception as e:
+                self.stdout.write(
+                    self.style.ERROR(
+                        f'Failed to initialize {collection.__name__}: {str(e)}'
+                    )
+                )

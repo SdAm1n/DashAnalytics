@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.hashers import check_password, make_password
-from .models import MongoUser, UserProfile, Customer, Product, Order, Sales
+from .models import MongoUser, Customer, Product, Order, Sales
 from analytics.models import (
     CustomerSegment, ProductCorrelation, Review, ProductPerformance, 
     CategoryPerformance, Demographics, GeographicalInsights, 
@@ -24,11 +24,11 @@ def initialize_data():
     """
     try:
         # Ensure core collections exist by touching them
+        MongoUser.objects().first()
         Customer.objects().first()
         Product.objects().first()
         Order.objects().first()
         Sales.objects().first()
-        UserProfile.objects().first()
         
         # Ensure analytics collections exist by touching them
         Review.objects().first()
@@ -42,6 +42,8 @@ def initialize_data():
         Analysis.objects().first()
         ProductCorrelation.objects().first()
         CustomerSegment.objects().first()
+
+        print("Successfully initialized all MongoDB collections")
 
     except Exception as e:
         print(f"Error ensuring collections exist: {str(e)}")
@@ -68,15 +70,10 @@ def dashboard(request):
         return redirect('login')
 
     try:
-        # Get or create user profile
-        user_profile = UserProfile.objects.filter(user=request.user).first()
-        if not user_profile:
-            user_profile = UserProfile(user=request.user).save()
-
         # Add your dashboard context data here
         context = {
             'user': request.user,
-            'theme': user_profile.theme_preference,
+            'theme': get_theme_preference(request),
         }
         return render(request, 'core/dashboard.html', context)
     except Exception as e:
@@ -323,7 +320,7 @@ def profile(request):
     """
     User profile view
     """
-    # Get user theme preference
+    # Get user theme preference from session
     theme = get_theme_preference(request)
 
     # Handle form submissions
@@ -340,7 +337,6 @@ def profile(request):
                 user.first_name = request.POST.get('first_name', user.first_name)
                 user.last_name = request.POST.get('last_name', user.last_name)
                 user.save()
-
                 messages.success(request, "Profile updated successfully.")
 
             # Handle password change
@@ -369,17 +365,9 @@ def profile(request):
         # Handle theme toggle
         elif 'theme' in request.POST:
             new_theme = request.POST.get('theme', 'light')
-            try:
-                user_profile = UserProfile.objects.get(user=request.user)
-                user_profile.theme_preference = new_theme
-                user_profile.save()
-                theme = new_theme
-                messages.info(request, f"Theme changed to {new_theme} mode.")
-            except UserProfile.DoesNotExist:
-                # Create a profile with the specified theme
-                UserProfile.objects.create(
-                    user=request.user, theme_preference=new_theme)
-                theme = new_theme
+            request.session['theme'] = new_theme
+            theme = new_theme
+            messages.info(request, f"Theme changed to {new_theme} mode.")
 
     # Context data for profile
     context = {
@@ -395,17 +383,6 @@ def profile(request):
 
 def get_theme_preference(request):
     """
-    Helper function to get user theme preference
+    Helper function to get user theme preference from session
     """
-    default_theme = 'light'
-
-    if request.user.is_authenticated:
-        try:
-            profile = UserProfile.objects.get(user=request.user)
-            return profile.theme_preference
-        except UserProfile.DoesNotExist:
-            # Create a profile with default theme if it doesn't exist
-            UserProfile.objects.create(
-                user=request.user, theme_preference=default_theme)
-
-    return default_theme
+    return request.session.get('theme', 'light')
