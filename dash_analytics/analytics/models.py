@@ -50,31 +50,29 @@ class CategoryPerformance(Document):
 
 class Demographics(Document):
     id = fields.StringField(primary_key=True)
-    age_group = fields.StringField(required=True)
-    gender = fields.StringField(required=True)
-    customer_count = fields.IntField(required=True)
-    total_sales = fields.FloatField(required=True)
+    segment_type = fields.StringField(required=True)  # 'age_group' or 'gender'
+    segment_value = fields.StringField(required=True)  # actual age group or gender value
+    total_orders = fields.IntField(required=True)
+    average_order_value = fields.FloatField(required=True)
     meta = {'collection': 'demographics'}
 
 class GeographicalInsights(Document):
     id = fields.StringField(primary_key=True)
     city = fields.StringField(required=True)
-    customer_count = fields.IntField(required=True)
-    total_sales = fields.FloatField(required=True)
-    total_profit = fields.FloatField(required=True)
-    total_loss = fields.FloatField(required=True)
-    is_highest_customers = fields.BooleanField(default=False)
-    is_lowest_customers = fields.BooleanField(default=False)
-    is_highest_profit = fields.BooleanField(default=False)
-    is_highest_loss = fields.BooleanField(default=False)
+    total_revenue = fields.FloatField(required=True)
+    total_orders = fields.IntField(required=True)
+    market_share = fields.FloatField(required=True)
     meta = {'collection': 'geographical_insights'}
 
 class CustomerBehavior(Document):
     id = fields.StringField(primary_key=True)
-    customer_id = fields.StringField(required=True)
-    items_bought_together = fields.StringField(required=True)
+    customer = fields.ReferenceField('Customer', required=True)
+    total_orders = fields.IntField(required=True)
+    total_spent = fields.FloatField(required=True)
+    average_order_value = fields.FloatField(required=True)
+    first_purchase_date = fields.DateTimeField(required=True)
+    last_purchase_date = fields.DateTimeField(required=True)
     average_review_score = fields.FloatField(required=True)
-    sentiment = fields.StringField(required=True)
     meta = {'collection': 'customer_behavior'}
 
 class Prediction(Document):
@@ -84,33 +82,3 @@ class Prediction(Document):
     predicted_value = fields.StringField(required=True)
     details = fields.StringField()
     meta = {'collection': 'predictions'}
-
-class Analysis(Document):
-    id = fields.StringField(primary_key=True)
-    analysis_type = fields.StringField(required=True, choices=(
-        'sales_trend', 'product_performance', 'customer_demographics',
-        'geographical_insights', 'customer_behavior'
-    ))
-    creation_date = fields.DateTimeField(default=datetime.utcnow)
-    analysis_data = fields.DictField(required=True)
-    period_start = fields.DateTimeField()
-    period_end = fields.DateTimeField()
-    meta = {'collection': 'analyses'}
-
-class ProductCorrelation(Document):
-    id = fields.StringField(primary_key=True)
-    product_a_id = fields.StringField(required=True)
-    product_b_id = fields.StringField(required=True)
-    correlation_score = fields.FloatField(required=True)
-    analysis_date = fields.DateTimeField(default=datetime.utcnow)
-    meta = {'collection': 'product_correlations'}
-
-class CustomerSegment(Document):
-    id = fields.StringField(primary_key=True)
-    segment_id = fields.StringField(required=True, unique=True)
-    segment_name = fields.StringField(required=True)
-    criteria = fields.DictField(required=True)
-    customer_count = fields.IntField(default=0)
-    average_purchase_value = fields.DecimalField(precision=2, required=True)
-    creation_date = fields.DateTimeField(default=datetime.utcnow)
-    meta = {'collection': 'customer_segments'}

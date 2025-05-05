@@ -87,7 +87,7 @@ class Order(Document):
     order_date = fields.DateTimeField(default=datetime.utcnow)
     quantity = fields.IntField(required=True)
     payment_method = fields.StringField()
-    review_score = fields.FloatField()
+    review_score = fields.FloatField()  # Added for temporary storage during analysis
     customer_id = fields.ReferenceField(Customer, required=True)
     product_id = fields.ReferenceField(Product, required=True)
     meta = {

@@ -5,8 +5,6 @@ from django.db.models import Sum, Avg, Count, Case, When, Value, CharField
 from django.utils import timezone
 from datetime import timedelta
 from core.models import Customer, Product, Order
-from analytics.models import Analysis, Prediction, ProductCorrelation, CustomerSegment
-from api.serializers import AnalysisSerializer, PredictionSerializer
 from api.serializers.analysis_serializer import (
     SalesTrendSerializer, 
     GeographicalInsightSerializer,
@@ -21,115 +19,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
     API endpoint for analytics and predictions
     """
 
-    @action(detail=False, methods=['get'])
-    def analyses(self, request):
-        """
-        Get all analyses
-        """
-        analysis_type = request.query_params.get('type', None)
-
-        if analysis_type:
-            analyses = Analysis.objects.filter(analysis_type=analysis_type)
-        else:
-            analyses = Analysis.objects.all()
-
-        serializer = AnalysisSerializer(analyses, many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
-    def analysis_detail(self, request, pk=None):
-        """
-        Get a specific analysis
-        """
-        try:
-            analysis = Analysis.objects.get(id=pk)
-        except Analysis.DoesNotExist:
-            raise Http404
-
-        serializer = AnalysisSerializer(analysis)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'])
-    def predictions(self, request):
-        """
-        Get all predictions
-        """
-        prediction_type = request.query_params.get('type', None)
-
-        if prediction_type:
-            predictions = Prediction.objects.filter(prediction_type=prediction_type)
-        else:
-            predictions = Prediction.objects.all()
-
-        serializer = PredictionSerializer(predictions, many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
-    def prediction_detail(self, request, pk=None):
-        """
-        Get a specific prediction
-        """
-        try:
-            prediction = Prediction.objects.get(id=pk)
-        except Prediction.DoesNotExist:
-            raise Http404
-
-        serializer = PredictionSerializer(prediction)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'])
-    def customer_segments(self, request):
-        """
-        Get customer segmentation data
-        """
-        segments = CustomerSegment.objects.all()
-
-        result = []
-        for segment in segments:
-            result.append({
-                'segment_id': segment.segment_id,
-                'segment_name': segment.segment_name,
-                'customer_count': segment.customer_count,
-                'average_purchase_value': float(segment.average_purchase_value),
-                'criteria': segment.criteria
-            })
-
-        return Response(result)
-
-    @action(detail=False, methods=['get'])
-    def product_correlations(self, request):
-        """
-        Get product correlation data
-        """
-        min_score = float(request.query_params.get('min_score', 0.5))
-
-        correlations = ProductCorrelation.objects.filter(correlation_score__gte=min_score)
-
-        result = []
-        for corr in correlations:
-            try:
-                product_a = Product.objects.get(product_id=corr.product_a_id)
-                product_b = Product.objects.get(product_id=corr.product_b_id)
-
-                result.append({
-                    'product_a': {
-                        'product_id': product_a.product_id,
-                        'name': product_a.name,
-                        'category': product_a.category
-                    },
-                    'product_b': {
-                        'product_id': product_b.product_id,
-                        'name': product_b.name,
-                        'category': product_b.category
-                    },
-                    'correlation_score': corr.correlation_score
-                })
-            except (Product.DoesNotExist, AttributeError):
-                pass
-
-        return Response(sorted(result, key=lambda x: x['correlation_score'], reverse=True))
-
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['GET'])
     def dashboard_summary(self, request):
         """
         Get dashboard summary data

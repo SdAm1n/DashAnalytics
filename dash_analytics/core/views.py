@@ -5,9 +5,8 @@ from django.contrib.auth import login, logout, authenticate, update_session_auth
 from django.contrib.auth.hashers import check_password, make_password
 from .models import MongoUser, Customer, Product, Order, Sales
 from analytics.models import (
-    CustomerSegment, ProductCorrelation, Review, ProductPerformance, 
-    CategoryPerformance, Demographics, GeographicalInsights, 
-    CustomerBehavior, Prediction, Analysis, SalesTrend
+    ProductPerformance, CategoryPerformance, Demographics, 
+    GeographicalInsights, CustomerBehavior, Prediction, SalesTrend
 )
 from api.serializers.user_serializer import UserSerializer
 import jwt
@@ -31,7 +30,6 @@ def initialize_data():
         Sales.objects().first()
         
         # Ensure analytics collections exist by touching them
-        Review.objects().first()
         SalesTrend.objects().first()
         ProductPerformance.objects().first()
         CategoryPerformance.objects().first()
@@ -39,9 +37,6 @@ def initialize_data():
         GeographicalInsights.objects().first()
         CustomerBehavior.objects().first()
         Prediction.objects().first()
-        Analysis.objects().first()
-        ProductCorrelation.objects().first()
-        CustomerSegment.objects().first()
 
         print("Successfully initialized all MongoDB collections")
 

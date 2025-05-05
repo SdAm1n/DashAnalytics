@@ -25,9 +25,7 @@ class AnalyticsConfig(AppConfig):
             models.GeographicalInsights,
             models.CustomerBehavior,
             models.Prediction,
-            models.Analysis,
-            models.ProductCorrelation,
-            models.CustomerSegment
+            
         ]
 
         # Create collections if they don't exist
