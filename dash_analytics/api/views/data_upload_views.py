@@ -4,13 +4,15 @@ from decimal import Decimal
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from core.models import Customer, Product, Order, Sales, RawDataUpload
+from core.models import Customer, Product, Order, Sales, RawDataUpload, LowReview, HighReview
+from core.utils import save_review_with_sharding, replicate_data, initialize_databases
 from analytics.models import (
     SalesTrend, ProductPerformance, CategoryPerformance,
-    Demographics, GeographicalInsights, CustomerBehavior, Review, Prediction
+    Demographics, GeographicalInsights, CustomerBehavior, Prediction
 )
 from django.core.files.uploadedfile import UploadedFile
 import json
+from mongoengine.connection import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -38,43 +40,48 @@ class DataUploadView(APIView):
                     }
                 }, status=status.HTTP_409_CONFLICT)
 
-            # Create upload record
-            upload = RawDataUpload(
-                file_name=file.name,
-                status='processing'
-            ).save()
+            # Create upload record and replicate to both databases
+            upload_data = {
+                'file_name': file.name,
+                'status': 'processing'
+            }
+            low_doc, high_doc = RawDataUpload.save_to_all(upload_data)
+            upload = low_doc  # Use the low_review_score_db instance for further operations
 
             try:
                 # Read CSV file
                 df = pd.read_csv(file)
                 
-                # Set total records count
-                upload.total_records = len(df)
-                upload.save()
+                # Set total records count and update both databases
+                upload_data = {'total_records': len(df)}
+                RawDataUpload.objects(id=upload.id).update_one(**upload_data)  # Update low_review_score_db
+                RawDataUpload.objects(id=high_doc.id).update_one(**upload_data)  # Update high_review_score_db
+
+                from core.utils import save_review_with_sharding, replicate_data, initialize_databases
+                
+                # Initialize databases to ensure all collections exist
+                initialize_databases()
                 
                 # Process data and store in respective collections
                 for index, row in df.iterrows():
-                    try:
-                        # Create or update customer
+                    try:                        # Create or update customer - replicate to both databases
                         customer_data = {
-                            'customer_id': row['customer_id'],
-                            'gender': row['gender'],
-                            'age': row['age'],
-                            'city': row['city']
+                            'customer_id': int(row['customer_id']),
+                            'gender': str(row['gender']),
+                            'age': int(row['age']),
+                            'city': str(row['city'])
                         }
-                        Customer.objects(customer_id=row['customer_id']).update_one(
-                            upsert=True, **customer_data)
-
-                        # Create or update product
+                        # Use replicate_data instead of update_one to ensure data exists in both databases
+                        replicate_data(customer_data, Customer)                        # Create or update product - replicate to both databases
                         product_data = {
-                            'product_id': row['product_id'],
-                            'product_name': row['product_name'],
-                            'category_id': row['category_id'],
-                            'category_name': row['category_name'],
+                            'product_id': int(row['product_id']),
+                            'product_name': str(row['product_name']),
+                            'category_id': int(row['category_id']),
+                            'category_name': str(row['category_name']),
                             'price': float(row['price'])
                         }
-                        Product.objects(product_id=row['product_id']).update_one(
-                            upsert=True, **product_data)
+                        # Use replicate_data instead of update_one to ensure data exists in both databases
+                        replicate_data(product_data, Product)
 
                         # Create new order
                         try:
@@ -111,13 +118,11 @@ class DataUploadView(APIView):
                                     setattr(existing_order, key, value)
                                 existing_order.save()
                                 logger.info(f"Updated existing order: {generated_order_id}")
-                            else:
-                                # Create new order
-                                new_order = Order(**order_data)
-                                new_order.save()
+                            else:                                # Create new order and replicate to both databases
+                                replicate_data(order_data, Order)
                                 logger.info(f"Created new order: {generated_order_id}")
 
-                            # Create sales record with matching ID
+                            # Create sales record with matching ID and replicate to both databases
                             sales_data = {
                                 'id': f"SALE-{generated_order_id}",
                                 'customer_id': str(row['customer_id']),
@@ -128,21 +133,59 @@ class DataUploadView(APIView):
                                 'profit': float(row['quantity'] * row['price'] * 0.3),  # 30% profit margin
                                 'city': row['city']
                             }
-                            Sales(**sales_data).save()
-
-                            # Create review record if review score exists
+                            replicate_data(sales_data, Sales)# Create review record if review score exists
                             if pd.notna(row.get('review_score')):
                                 review_data = {
                                     'id': f"REV-{generated_order_id}",
                                     'customer_id': str(row['customer_id']),
                                     'product_id': str(row['product_id']),
                                     'review_score': float(row['review_score']),
-                                    'sentiment': self.get_sentiment(float(row['review_score']))
+                                    'sentiment': self.get_sentiment(float(row['review_score'])),
+                                    'review_text': row.get('review_text', ''),
+                                    'review_date': order_date
                                 }
-                                Review(**review_data).save()
+                                # Save review to appropriate database based on score
+                                save_review_with_sharding(review_data)
 
-                            upload.processed_records += 1
-                            upload.save()
+                                # Update review counters
+                                if review_data['review_score'] < 4:
+                                    upload_data['low_reviews_count'] = (upload_data.get('low_reviews_count', 0) + 1)
+                                else:
+                                    upload_data['high_reviews_count'] = (upload_data.get('high_reviews_count', 0) + 1)
+
+                            # Update analytics collections - one by one to isolate any issues
+                            try:
+                                self.update_product_performance(row, order_date)
+                            except Exception as e:
+                                logger.error(f"Error in update_product_performance: {str(e)}")
+                            try:
+                                self.update_category_performance(row)
+                            except Exception as e:
+                                logger.error(f"Error in update_category_performance: {str(e)}")
+                                
+                            try:
+                                # Use the enhanced version that ensures proper replication for all period types
+                                from core.enhanced_sales_trend import update_sales_trend_enhanced
+                                update_sales_trend_enhanced(row, order_date)
+                            except Exception as e:
+                                logger.error(f"Error in update_sales_trend: {str(e)}")
+                                
+                            try:
+                                self.update_demographics(row)
+                            except Exception as e:
+                                logger.error(f"Error in update_demographics: {str(e)}")
+                                
+                            try:
+                                self.update_geographical_insights(row)
+                            except Exception as e:
+                                logger.error(f"Error in update_geographical_insights: {str(e)}")
+                                
+                            # Don't call predict_and_store_insights for every row - will be called once at the end
+                            # self.predict_and_store_insights()
+
+                            upload_data = {'processed_records': upload.processed_records + 1}
+                            RawDataUpload.objects(id=upload.id).update_one(**upload_data)  # Update low_review_score_db
+                            RawDataUpload.objects(id=high_doc.id).update_one(**upload_data)  # Update high_review_score_db
                             
                         except Exception as e:
                             logger.error(f"Error creating order for row {index}: {str(e)}")
@@ -150,14 +193,21 @@ class DataUploadView(APIView):
 
                     except Exception as row_error:
                         logger.error(f"Error processing row {index}: {str(row_error)}")
-                        continue
-
-                # Update upload status
-                upload.status = 'completed'
-                upload.save()
+                        continue                # Update upload status in both databases
+                upload_data = {'status': 'completed'}
+                RawDataUpload.objects(id=upload.id).update_one(**upload_data)  # Update low_review_score_db
+                RawDataUpload.objects(id=high_doc.id).update_one(**upload_data)  # Update high_review_score_db
 
                 # Trigger analytics calculations
                 self.update_analytics()
+                
+                # Run finalization to ensure proper replication of all data types
+                try:
+                    logger.info("Running finalization process to ensure data consistency...")
+                    self.finalize_upload_processing()
+                except Exception as finalize_error:
+                    logger.error(f"Error in finalization process: {str(finalize_error)}")
+                    # Don't fail the upload if finalization has issues
 
                 return Response({
                     'message': 'Data uploaded and processed successfully',
@@ -165,9 +215,13 @@ class DataUploadView(APIView):
                 })
 
             except Exception as process_error:
-                upload.status = 'failed'
-                upload.error_message = str(process_error)
-                upload.save()
+                # Update error status in both databases
+                upload_data = {
+                    'status': 'failed',
+                    'error_message': str(process_error)
+                }
+                RawDataUpload.objects(id=upload.id).update_one(**upload_data)  # Update low_review_score_db
+                RawDataUpload.objects(id=high_doc.id).update_one(**upload_data)  # Update high_review_score_db
                 raise process_error
 
         except Exception as e:
@@ -206,7 +260,6 @@ class DataUploadView(APIView):
         """Update all analytics collections based on current data"""
         try:
             # MongoDB is already connected through settings.py, just verify connection
-            from mongoengine.connection import get_db
             try:
                 db = get_db()
                 logger.info("MongoDB connection verified")
@@ -221,33 +274,60 @@ class DataUploadView(APIView):
                     Demographics, GeographicalInsights, CustomerBehavior, Prediction
                 ]
                 for collection in collections_to_clear:
-                    collection.objects().delete()
+                    collection.objects.delete()
                 logger.info("Successfully cleared existing analytics data")
             except Exception as clear_err:
                 logger.error(f"Error clearing existing analytics data: {str(clear_err)}")
                 raise
 
-            # Update each analytics collection with error handling for each method
-            analytics_methods = [
-                (self.update_sales_trends, 'sales trends'),
-                (self.update_product_performance, 'product performance'),
-                (self.update_category_performance, 'category performance'),
-                (self.update_demographics, 'demographics'),
-                (self.update_geographical_insights, 'geographical insights'),
-                (self.update_customer_behavior, 'customer behavior')
-            ]
-
+            # Aggregate sales data first
+            sales_data = list(Sales.objects.all())
             success_count = 0
-            for method, name in analytics_methods:
-                try:
-                    method()
-                    success_count += 1
-                    logger.info(f"Successfully updated {name} analytics")
-                except Exception as method_err:
-                    logger.error(f"Error updating {name} analytics: {str(method_err)}")
-                    continue
 
-            # Generate predictions after all analytics are updated
+            # Process each sale record for analytics
+            for sale in sales_data:
+                try:
+                    # Get related records
+                    customer = Customer.objects(customer_id=sale.customer_id).first()
+                    product = Product.objects(product_id=sale.product_id).first()
+                    
+                    if not customer or not product:
+                        continue
+                    
+                    # Create row data for analytics
+                    row = {
+                        'product_id': sale.product_id,
+                        'customer_id': sale.customer_id,
+                        'quantity': sale.quantity,
+                        'price': product.price,
+                        'city': sale.city,
+                        'category_name': product.category_name,
+                        'gender': customer.gender,
+                        'age': customer.age
+                    }
+                    
+                    # Update individual analytics
+                    self.update_product_performance(row, sale.sale_date)
+                    self.update_category_performance(row)
+                    self.update_demographics(row)
+                    self.update_geographical_insights(row)
+                except Exception as e:
+                    logger.error(f"Error processing sale {sale.id} for analytics: {str(e)}")
+
+            # Update aggregate analytics
+            try:
+                self.update_sales_trends()
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Error updating sales trends: {str(e)}")
+
+            try:
+                self.update_customer_behavior()
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Error updating customer behavior: {str(e)}")
+
+            # Generate predictions
             try:
                 self.predict_and_store_insights()
                 success_count += 1
@@ -255,10 +335,10 @@ class DataUploadView(APIView):
             except Exception as pred_err:
                 logger.error(f"Error generating predictions: {str(pred_err)}")
 
-            if success_count == len(analytics_methods) + 1:  # +1 for predictions
-                logger.info("Successfully completed all analytics and predictions updates")
+            if success_count >= 3:  # We expect at least 3 successful operations
+                logger.info("Successfully completed core analytics and predictions updates")
             else:
-                logger.warning(f"Completed {success_count} out of {len(analytics_methods) + 1} total updates")
+                logger.warning(f"Only completed {success_count} out of 3 core analytics updates")
 
         except Exception as e:
             logger.error(f"Critical error in update_analytics: {str(e)}")
@@ -290,20 +370,18 @@ class DataUploadView(APIView):
 
                 total_sales_for_period = sum(s['total_sales'] for s in monthly_sales)
                 sales_percentage = (curr_sales / total_sales_for_period * 100) if total_sales_for_period > 0 else 0
-
+                
                 trend_data = {
+                    'id': f"TREND-monthly-{period_value}",
                     'period_type': 'monthly',
                     'period_value': period_value,
                     'total_sales': curr_sales,
                     'sales_growth_rate': float(growth_rate),
                     'sales_percentage': float(sales_percentage)
                 }
-                
-                # Use update_one with upsert to avoid duplicates
-                SalesTrend.objects(period_type='monthly', period_value=period_value).update_one(
-                    upsert=True, 
-                    **trend_data
-                )
+                  # Use specialized sales trend replication function instead of generic replicate_data
+                from core.sales_trend_utils import replicate_sales_trend_data
+                replicate_sales_trend_data(trend_data)
 
             logger.info("Successfully updated sales trends")
             return True
@@ -312,258 +390,190 @@ class DataUploadView(APIView):
             logger.error(f"Error updating sales trends: {str(e)}")
             raise
 
-    def update_product_performance(self):
+    def update_product_performance(self, row, order_date):
         """Update product performance analytics"""
         try:
-            pipeline = [
-                {'$group': {
-                    '_id': '$product_id',
-                    'total_quantity': {'$sum': '$quantity'},
-                    'total_revenue': {'$sum': '$revenue'},
-                    'total_profit': {'$sum': '$profit'}
-                }},
-                {'$sort': {'total_revenue': -1}}
-            ]
-            
-            product_metrics = list(Sales.objects.aggregate(*pipeline))
-
-            # Find best and worst selling products
-            sorted_by_revenue = sorted(product_metrics, key=lambda x: x['total_revenue'], reverse=True)
-            best_selling = sorted_by_revenue[0] if sorted_by_revenue else None
-            worst_selling = sorted_by_revenue[-1] if sorted_by_revenue else None
-
-            for item in product_metrics:
-                product = Product.objects(product_id=item['_id']).first()
-                if product:
-                    performance_data = {
-                        'product_id': str(product.id),
-                        'category': product.category_name,
-                        'total_quantity_sold': int(item['total_quantity']),
-                        'average_revenue': float(item['total_revenue'] / item['total_quantity']) if item['total_quantity'] > 0 else 0,
-                        'is_best_selling': item == best_selling,
-                        'is_worst_selling': item == worst_selling,
-                    }
-                    
-                    ProductPerformance.objects(product_id=str(product.id)).update_one(
-                        upsert=True,
-                        **performance_data
-                    )
-
-            logger.info("Successfully updated product performance")
-            return True
-
+            product_data = {
+                'id': f"PROD-{row['product_id']}",
+                'product_id': str(row['product_id']),
+                'category': row['category_name'],
+                'total_quantity_sold': int(row['quantity']),
+                'average_revenue': float(row['quantity'] * row['price']),
+                'is_best_selling': False,
+                'is_worst_selling': False
+            }
+            replicate_data(product_data, ProductPerformance)
         except Exception as e:
             logger.error(f"Error updating product performance: {str(e)}")
-            raise
 
-    def update_category_performance(self):
+    def update_category_performance(self, row):
         """Update category performance analytics"""
         try:
-            # Get all sales data with product information
-            sales_data = Sales.objects().all()
-            df = pd.DataFrame([{
-                'category': Product.objects(product_id=sale.product_id).first().category_name,
-                'quantity': sale.quantity,
-                'revenue': float(sale.revenue),
-                'profit': float(sale.profit)
-            } for sale in sales_data])
-
-            # Group by category and calculate metrics
-            category_metrics = df.groupby('category').agg({
-                'quantity': 'sum',
-                'revenue': 'sum',
-                'profit': 'sum'
-            }).reset_index()
-
-            # Find highest profit category
-            highest_profit_category = category_metrics.loc[category_metrics['profit'].idxmax(), 'category']
-
-            # Store in CategoryPerformance collection
-            for _, row in category_metrics.iterrows():
-                performance_data = {
-                    'id': f"CAT-{row['category'].replace(' ', '-').lower()}",
-                    'category': row['category'],
-                    'total_quantity_sold': int(row['quantity']),
-                    'average_revenue': float(row['revenue'] / row['quantity']) if row['quantity'] > 0 else 0,
-                    'highest_profit': row['category'] == highest_profit_category
-                }
-                CategoryPerformance.objects(category=row['category']).update_one(upsert=True, **performance_data)
-
-            logger.info("Successfully updated category performance analytics")
-            return True
-
+            category_data = {
+                'id': f"CAT-{row['category_name'].replace(' ', '-').lower()}",
+                'category': row['category_name'],
+                'total_quantity_sold': int(row['quantity']),
+                'average_revenue': float(row['quantity'] * row['price'])
+            }
+            replicate_data(category_data, CategoryPerformance)        
         except Exception as e:
             logger.error(f"Error updating category performance: {str(e)}")
-            raise
+            
+    def update_sales_trend(self, row, order_date):
+        """Update sales trend analytics"""
+        try:
+            # Import the specialized sales trend replication function
+            from core.sales_trend_utils import replicate_sales_trend_data, ensure_database_consistency
+            
+            # Create period identifiers
+            day = order_date.strftime('%Y-%m-%d')
+            week = order_date.strftime('%Y-W%V')
+            month = order_date.strftime('%Y-%m')
+            year = order_date.strftime('%Y')
+            quarter = f"{year}-Q{(order_date.month-1)//3 + 1}"
 
-    def update_demographics(self):
+            periods = [
+                ('daily', day),
+                ('weekly', week),
+                ('monthly', month),
+                ('quarterly', quarter),
+                ('yearly', year)
+            ]
+
+            for period_type, period_value in periods:
+                trend_data = {
+                    'id': f"TREND-{period_type}-{period_value}",
+                    'period_type': period_type,
+                    'period_value': period_value,
+                    'total_sales': float(row['quantity'] * row['price']),
+                    'sales_growth_rate': 0.0,  # Will be calculated in batch
+                    'sales_percentage': 0.0  # Will be calculated in batch
+                }
+                # Use specialized replication function instead of the generic one
+                low_doc, high_doc = replicate_sales_trend_data(trend_data)
+                
+                # Additional verification to ensure data was actually written to both DBs
+                if not low_doc or not high_doc:
+                    logger.warning(f"Initial replication failed for {period_type}. Retrying with direct method...")
+                    # Force consistency between databases as a failsafe
+                    ensure_database_consistency(period_type, period_value)
+                
+        except Exception as e:
+            logger.error(f"Error updating sales trend: {str(e)}")
+            
+    def update_demographics(self, row):
         """Update demographics analytics"""
         try:
-            # Get customer data with their orders
-            customers = Customer.objects().all()
-            df = pd.DataFrame([{
-                'gender': customer.gender,
-                'age': customer.age,
-                'city': customer.city,
-                'total_orders': len(Order.objects(customer_id=customer)),
-                'total_spent': sum(float(order.product_id.price * order.quantity) 
-                                 for order in Order.objects(customer_id=customer))
-            } for customer in customers])
-
-            # Calculate age groups
-            df['age_group'] = pd.cut(df['age'], 
-                                   bins=[0, 25, 35, 50, 65, 100],
-                                   labels=['18-25', '26-35', '36-50', '51-65', '65+'])
-
-            # Group by different demographic factors
-            gender_metrics = df.groupby('gender').agg({
-                'total_orders': 'sum',
-                'total_spent': 'mean'
-            }).reset_index()
-
-            age_metrics = df.groupby('age_group').agg({
-                'total_orders': 'sum',
-                'total_spent': 'mean'
-            }).reset_index()
-
-            # Store in Demographics collection
-            for metric_type, metrics_df in [('gender', gender_metrics), ('age_group', age_metrics)]:
-                for _, row in metrics_df.iterrows():
-                    demographic_data = {
-                        'segment_type': metric_type,
-                        'segment_value': row[metric_type],
-                        'total_orders': int(row['total_orders']),
-                        'average_order_value': float(row['total_spent'])
-                    }
-                    Demographics.objects(
-                        segment_type=metric_type,
-                        segment_value=row[metric_type]
-                    ).update_one(upsert=True, **demographic_data)
-
+            demographics_data = {
+                'id': f"DEM-{row['gender']}-{row['age']//10*10}",
+                'age_group': f"{row['age']//10*10}-{row['age']//10*10+9}",
+                'gender': row['gender'],
+                'total_customers': 1,
+                'total_spent': float(row['quantity'] * row['price'])
+            }
+            replicate_data(demographics_data, Demographics)
         except Exception as e:
             logger.error(f"Error updating demographics: {str(e)}")
+    
+    def finalize_upload_processing(self):
+        """Run post-processing steps after the CSV upload is complete"""
+        try:
+            logger.info("Running post-processing for CSV upload...")
+            
+            # Import the post-upload hook
+            from post_upload_hooks import ensure_sales_trend_consistency
+            
+            # Ensure all sales trend data is properly replicated
+            ensure_sales_trend_consistency()
+            
+            logger.info("Post-processing for CSV upload completed successfully")
+        except Exception as e:
+            logger.error(f"Error in post-upload processing: {str(e)}")
 
-    def update_geographical_insights(self):
+    def update_geographical_insights(self, row):
         """Update geographical insights analytics"""
         try:
-            # Get sales data with city information
-            sales_data = Sales.objects().all()
-            df = pd.DataFrame([{
-                'city': sale.city,
-                'revenue': float(sale.revenue),
-                'quantity': sale.quantity
-            } for sale in sales_data])
-
-            # Group by city and calculate metrics
-            city_metrics = df.groupby('city').agg({
-                'revenue': 'sum',
-                'quantity': 'sum'
-            }).reset_index()
-
-            # Calculate market share for each city
-            total_revenue = city_metrics['revenue'].sum()
-            city_metrics['market_share'] = city_metrics['revenue'] / total_revenue
-
-            # Store in GeographicalInsights collection
-            for _, row in city_metrics.iterrows():
-                insight_data = {
-                    'city': row['city'],
-                    'total_revenue': float(row['revenue']),
-                    'total_orders': int(row['quantity']),
-                    'market_share': float(row['market_share'])
-                }
-                GeographicalInsights.objects(city=row['city']).update_one(upsert=True, **insight_data)
-
+            geo_data = {
+                'id': f"GEO-{row['city'].replace(' ', '-').lower()}",
+                'city': row['city'],
+                'total_sales': float(row['quantity'] * row['price']),
+                'total_orders': 1,
+                'average_order_value': float(row['quantity'] * row['price'])
+            }
+            replicate_data(geo_data, GeographicalInsights)
         except Exception as e:
             logger.error(f"Error updating geographical insights: {str(e)}")
-
+            
     def update_customer_behavior(self):
         """Update customer behavior analytics"""
         try:
-            # Get all orders with customer information and reviews
-            orders_df = pd.DataFrame([{
-                'customer_id': str(order.customer_id.id),
-                'order_date': order.order_date,
-                'quantity': order.quantity,
-                'review_score': order.review_score if order.review_score else 0,
-                'total_amount': float(order.product_id.price * order.quantity)
-            } for order in Order.objects().all()])
+            # Group sales by customer_id
+            pipeline = [
+                {'$group': {
+                    '_id': '$customer_id',
+                    'total_purchases': {'$sum': 1},
+                    'total_spent': {'$sum': '$revenue'},
+                    'purchase_frequency': {'$avg': '$quantity'}
+                }}
+            ]
             
-            # Calculate sentiment before aggregating
-            def get_sentiment(score):
-                if score >= 4:
-                    return 'Positive'
-                elif score <= 2:
-                    return 'Negative'
-                return 'Neutral'
+            customers_behavior = list(Sales.objects.aggregate(*pipeline))
             
-            # Group by customer and calculate metrics including review scores
-            customer_metrics = orders_df.groupby('customer_id').agg({
-                'order_date': ['count', 'min', 'max'],
-                'quantity': 'sum',
-                'total_amount': 'sum',
-                'review_score': 'mean'
-            }).reset_index()
-
-            # Flatten column names
-            customer_metrics.columns = ['customer_id', 'total_orders', 'first_purchase', 
-                                     'last_purchase', 'total_items', 'total_spent', 'avg_review_score']
-
-            # Store in CustomerBehavior collection
-            for _, row in customer_metrics.iterrows():
-                customer = Customer.objects(id=row['customer_id']).first()
-                if customer:
-                    behavior_data = {
-                        'customer': customer,
-                        'total_orders': int(row['total_orders']),
-                        'total_spent': float(row['total_spent']),
-                        'average_order_value': float(row['total_spent'] / row['total_orders']),
-                        'first_purchase_date': row['first_purchase'],
-                        'last_purchase_date': row['last_purchase'],
-                        'average_review_score': float(row['avg_review_score']),
-                    }
-                    CustomerBehavior.objects(customer=customer).update_one(upsert=True, **behavior_data)
-
-            logger.info("Successfully updated customer behavior analytics")
+            for customer in customers_behavior:
+                behavior_data = {
+                    'id': f"CUST-{customer['_id']}",
+                    'customer_id': customer['_id'],
+                    'total_purchases': customer['total_purchases'],
+                    'total_spent': float(customer['total_spent']),
+                    'purchase_frequency': float(customer['purchase_frequency']),
+                    'customer_segment': self.get_customer_segment(customer['total_spent'], customer['total_purchases'])
+                }
+                  # Use replicate_data to update both databases
+                replicate_data(behavior_data, CustomerBehavior)
+                
+            logger.info("Successfully updated customer behavior")
             return True
-
+            
         except Exception as e:
             logger.error(f"Error updating customer behavior: {str(e)}")
             raise
-
-    def get_sentiment(self, score):
-        """Helper method to determine sentiment from review score"""
-        if score >= 4:
-            return 'Positive'
-        elif score <= 2:
-            return 'Negative'
-        return 'Neutral'
+            
+    def get_customer_segment(self, total_spent, purchase_count):
+        """Helper function to determine customer segment based on spending and frequency"""
+        if total_spent > 1000 and purchase_count > 10:
+            return 'VIP'
+        elif total_spent > 500 or purchase_count > 5:
+            return 'Regular'
+        else:
+            return 'Occasional'
 
     def predict_and_store_insights(self):
         """Generate and store predictions based on analyzed data"""
         try:
-            # Get sales trends for future predictions
-            sales_trends = SalesTrend.objects().all()
-            if not sales_trends:
-                logger.warning("No sales trends available for prediction")
-                return
-
-            # Future sales trend prediction
-            recent_trends = list(sales_trends.order_by('-period_value')[:3])  # Last 3 periods
+            # Sales trend prediction
+            recent_trends = SalesTrend.objects(period_type='monthly').order_by('-period_value')[:12]
             if recent_trends:
-                avg_growth = sum(trend.sales_growth_rate for trend in recent_trends) / len(recent_trends)
-                latest_sales = recent_trends[0].total_sales
-                predicted_sales = latest_sales * (1 + (avg_growth / 100))
+                total_growth = 0
+                count = 0
+                prev_sales = None
+                
+                for trend in recent_trends:
+                    if prev_sales is not None:
+                        growth = ((trend.total_sales - prev_sales) / prev_sales * 100) if prev_sales > 0 else 0
+                        total_growth += growth
+                        count += 1
+                    prev_sales = trend.total_sales
+                
+                avg_growth = total_growth / count if count > 0 else 0
                 
                 prediction_data = {
-                    'id': f"PRED-SALES-{recent_trends[0].period_value}",
+                    'id': f"PRED-TREND-{pd.Timestamp.now().strftime('%Y%m')}",
                     'prediction_type': 'future_sales_trend',
-                    'prediction_period': 'next_month',
-                    'predicted_value': f"{predicted_sales:.2f}",
+                    'prediction_period': 'next_quarter',
+                    'predicted_value': f"{avg_growth:.1f}",
                     'details': f"Based on average growth rate of {avg_growth:.1f}%"
                 }
-                Prediction.objects(prediction_type='future_sales_trend',
-                                prediction_period='next_month').update_one(upsert=True, **prediction_data)
+                replicate_data(prediction_data, Prediction)
 
             # Future top product prediction
             top_products = ProductPerformance.objects(is_best_selling=True).first()
@@ -575,25 +585,28 @@ class DataUploadView(APIView):
                     'predicted_value': top_products.product_id,
                     'details': f"Based on current performance metrics"
                 }
-                Prediction.objects(prediction_type='future_top_product',
-                                prediction_period='next_quarter').update_one(upsert=True, **prediction_data)
-
-            # Category correlation prediction
-            top_category = CategoryPerformance.objects(highest_profit=True).first()
-            if top_category:
-                prediction_data = {
-                    'id': f"PRED-CAT-{top_category.category.replace(' ', '-').lower()}",
-                    'prediction_type': 'correlation',
-                    'prediction_period': 'current',
-                    'predicted_value': top_category.category,
-                    'details': f"Strong correlation with profitability"
-                }
-                Prediction.objects(prediction_type='correlation',
-                                prediction_period='current').update_one(upsert=True, **prediction_data)
-
-            logger.info("Successfully generated and stored predictions")
-            return True
-
+                replicate_data(prediction_data, Prediction)
+                
+            # Customer churn prediction based on purchase patterns
+            inactive_customers = CustomerBehavior.objects(total_purchases__lt=2).limit(10)
+            if inactive_customers:
+                for customer in inactive_customers:
+                    prediction_data = {
+                        'id': f"PRED-CHURN-{customer.customer_id}",
+                        'prediction_type': 'churn_risk',
+                        'prediction_period': 'next_quarter',
+                        'predicted_value': 'high',
+                        'details': f"Customer {customer.customer_id} with low engagement"
+                    }
+                    replicate_data(prediction_data, Prediction)
         except Exception as e:
             logger.error(f"Error generating predictions: {str(e)}")
-            raise
+
+    def get_sentiment(self, review_score):
+        """Helper function to map review score to sentiment"""
+        if review_score >= 4:
+            return 'positive'
+        elif review_score >= 3:
+            return 'neutral'
+        else:
+            return 'negative'

@@ -13,12 +13,12 @@ class SalesTrendSerializer(serializers.Serializer):
 
 
 class GeographicalInsightSerializer(serializers.Serializer):
-    region = serializers.CharField()
+    city = serializers.CharField(source='region')
     total_sales = serializers.DecimalField(max_digits=12, decimal_places=2)
-    customer_count = serializers.IntegerField()
+    total_orders = serializers.IntegerField(source='customer_count')
     average_order_value = serializers.DecimalField(max_digits=10, decimal_places=2)
-    growth_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
-    market_share = serializers.DecimalField(max_digits=5, decimal_places=2)
+    growth_rate = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
+    market_share = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
 
 
 class CustomerAnalyticsSerializer(serializers.Serializer):

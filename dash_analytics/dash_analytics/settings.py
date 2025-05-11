@@ -115,20 +115,35 @@ DATABASES = {
     }
 }
 
-# MongoDB Configuration
-MONGODB_HOST = 'localhost'
-MONGODB_PORT = 27017
-MONGODB_NAME = 'dash_analytics'
-MONGODB_URI = f'mongodb://{MONGODB_HOST}:{MONGODB_PORT}/{MONGODB_NAME}'
+# MongoDB Atlas Configuration
+MONGODB_ATLAS_URI = 'mongodb+srv://nusrat:gaZ527yeJqh40CWL@dashanalytics.ws8eiuh.mongodb.net/'
 
-# Initialize MongoDB connection
-connect(
-    db=MONGODB_NAME,
-    host=MONGODB_URI,
-    connect=True,  # Enable immediate connection
-    tz_aware=True,  # Make sure datetime objects are timezone-aware
-    uuidRepresentation='standard'
-)
+# Multiple Database Configuration
+MONGODB_DATABASES = {
+    'auth_db': {
+        'name': 'auth_db',
+        'uri': MONGODB_ATLAS_URI + 'auth_db?retryWrites=true&w=majority',
+    },
+    'low_review_score_db': {
+        'name': 'low_review_score_db',
+        'uri': MONGODB_ATLAS_URI + 'low_review_score_db?retryWrites=true&w=majority',
+    },
+    'high_review_score_db': {
+        'name': 'high_review_score_db',
+        'uri': MONGODB_ATLAS_URI + 'high_review_score_db?retryWrites=true&w=majority',
+    }
+}
+
+# Initialize MongoDB connections for each database
+for db_key, db_config in MONGODB_DATABASES.items():
+    connect(
+        db=db_config['name'],
+        host=db_config['uri'],
+        alias=db_key,
+        connect=True,  # Enable immediate connection
+        tz_aware=True,  # Make sure datetime objects are timezone-aware
+        uuidRepresentation='standard'
+    )
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -225,3 +240,52 @@ CORS_ALLOW_CREDENTIALS = True
 
 LOGIN_URL = '/signin/'
 LOGIN_REDIRECT_URL = '/dashboard/'
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'core': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'api': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'analytics': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

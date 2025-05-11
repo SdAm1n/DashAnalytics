@@ -6,31 +6,23 @@ class AnalyticsConfig(AppConfig):
     name = 'analytics'
 
     def ready(self):
-        from mongoengine import get_connection, get_db
+        import logging
+        from mongoengine import connect, get_db
         from django.conf import settings
-        from . import models
 
-        # Get existing connection instead of creating a new one
-        connection = get_connection()
-        db = get_db()
-
-        # Initialize all collections
-        model_classes = [
-            models.Sales,
-            models.Review,
-            models.SalesTrend,
-            models.ProductPerformance,
-            models.CategoryPerformance,
-            models.Demographics,
-            models.GeographicalInsights,
-            models.CustomerBehavior,
-            models.Prediction,
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Make sure we have a default connection
+            connect(
+                db=settings.MONGODB_DATABASES['low_review_score_db']['name'],
+                host=settings.MONGODB_DATABASES['low_review_score_db']['uri'],
+                alias='default'
+            )
+            logger.info("Created default connection for analytics app")
             
-        ]
-
-        # Create collections if they don't exist
-        existing_collections = db.list_collection_names()
-        for model_class in model_classes:
-            collection_name = model_class._meta['collection']
-            if collection_name not in existing_collections:
-                db.create_collection(collection_name)
+        except Exception as e:
+            logger.error(f"Error setting up default connection: {str(e)}")
+            # Don't raise, as this would prevent the app from loading
+        
+        # Note: Collection initialization is now handled in core.utils.initialize_databases
