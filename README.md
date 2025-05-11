@@ -52,20 +52,40 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r dash_analytics/requirements.txt
 ```
 
-4. Run migrations:
+4. Setup MongoDB:
+
+   a. **MongoDB Atlas** (Cloud):
+   - Create a free MongoDB Atlas account at https://www.mongodb.com/cloud/atlas
+   - Create a new cluster
+   - In the "Network Access" tab, add your IP address
+   - In the "Database Access" tab, create a new database user
+   - Click "Connect" on your cluster, then "Connect your application"
+   - Copy the connection string and update it in `dash_analytics/dash_analytics/settings.py`:
+
+   ```python
+   MONGODB_ATLAS_URI = 'mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>'
+   ```
+
+   b. **MongoDB Compass** (Local):
+   - Install MongoDB locally from https://www.mongodb.com/try/download/community
+   - Install MongoDB Compass from https://www.mongodb.com/try/download/compass
+   - Open MongoDB Compass and connect to your local MongoDB instance
+   - Add the connection string in URI in new connection
+    
+5. Run migrations:
 
 ```bash
 cd dash_analytics
 python manage.py migrate
 ```
 
-5. Create a superuser (admin):
+6. Create a superuser (admin):
 
 ```bash
 python manage.py createsuperuser
 ```
 
-6. Start the development server:
+7. Start the development server:
 
 ```bash
 python manage.py runserver

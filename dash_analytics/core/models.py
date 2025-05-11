@@ -332,6 +332,9 @@ class RawDataUpload(ReplicatedDocument):
     error_message = fields.StringField()
     processed_records = fields.IntField(default=0)
     total_records = fields.IntField(default=0)
+    low_reviews_count = fields.IntField(default=0)
+    high_reviews_count = fields.IntField(default=0)
+    processing_time = fields.FloatField(default=0.0)
     meta = {
         'collection': 'raw_data_uploads',
         'indexes': ['file_name', 'upload_date'],

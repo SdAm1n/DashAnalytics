@@ -21,8 +21,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(f"csv_upload_hook_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
@@ -42,35 +41,19 @@ def post_csv_upload_hook():
     # Get database connections
     low_db = get_db('low_review_score_db')
     high_db = get_db('high_review_score_db')
-    
-    # Check period type distribution
-    low_period_types = {}
-    high_period_types = {}
+      # Check for missing period types
     missing_period_types = []
     
     for period_type in ['daily', 'weekly', 'monthly', 'quarterly', 'yearly']:
         low_count = low_db.sales_trends.count_documents({"period_type": period_type})
         high_count = high_db.sales_trends.count_documents({"period_type": period_type})
         
-        low_period_types[period_type] = low_count
-        high_period_types[period_type] = high_count
-        
         # Check if this period type might be missing in low_db
         if high_count > 0 and low_count == 0:
-            logger.warning(f"Missing period type in low_db: {period_type}")
             missing_period_types.append(period_type)
-    
-    logger.info(f"Low DB period types: {low_period_types}")
-    logger.info(f"High DB period types: {high_period_types}")
-    
-    # If we have missing period types in low_db, replicate them
+      # If we have missing period types in low_db, replicate them
     if missing_period_types:
-        logger.info(f"Replicating missing period types: {missing_period_types}")
-        copied_count = direct_db_copy('high_review_score_db', 'low_review_score_db', missing_period_types)
-        logger.info(f"Copied {copied_count} records for the missing period types")
-    
-    # Double-check to make sure all records are properly replicated
-    verify_replication_completeness()
+        direct_db_copy('high_review_score_db', 'low_review_score_db', missing_period_types)
     
     return True
 
@@ -88,11 +71,7 @@ def verify_replication_completeness():
     
     # Check if total counts match
     if low_count != high_count:
-        logger.warning(f"Total record counts don't match: low={low_count}, high={high_count}")
-        logger.info("Running full replication to ensure consistency...")
         direct_db_copy()
-    else:
-        logger.info(f"Both databases have the same number of records: {low_count}")
     
     return True
 

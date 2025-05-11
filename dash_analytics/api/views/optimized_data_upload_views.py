@@ -42,44 +42,6 @@ class DataUploadView(APIView):
     """
     Optimized API view for data uploads and processing
     """
-    def get(self, request):
-        """
-        Get a list of all uploaded files/records
-        """
-        try:
-            uploads = RawDataUpload.objects.all().order_by('-upload_date')
-            
-            result = []
-            for upload in uploads:
-                # Calculate file size if available
-                file_size = getattr(upload, 'file_size', 0) 
-                
-                # Calculate total records (processed_records or total_records)
-                row_count = upload.processed_records or upload.total_records or 0
-                
-                # Determine if processing is complete
-                processed = upload.status == 'completed'
-                
-                # Map upload record to the format expected by the frontend
-                result.append({
-                    'id': str(upload.id),
-                    'file_name': upload.file_name,
-                    'upload_date': upload.upload_date,
-                    'file_size': file_size,
-                    'row_count': row_count,
-                    'processed': processed,
-                    'processed_date': getattr(upload, 'processed_date', None)
-                })
-            
-            return Response(result)
-            
-        except Exception as e:
-            logger.error(f"Error retrieving upload records: {str(e)}")
-            return Response(
-                {'error': 'Error retrieving upload records: ' + str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-    
     def post(self, request):
         """
         Handle CSV file upload with optimized processing

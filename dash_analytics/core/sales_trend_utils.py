@@ -27,11 +27,7 @@ def replicate_sales_trend_data(data):
             
         # Make a copy to avoid reference issues
         data_copy = data.copy()
-        
-        # Force logging to trace the issue
-        logger.info(f"Replicating {period_type} trend for {period_value} with ID {data_copy['id']}")
-        
-        # First save to low_review_score_db with explicit handling for each period type
+          # First save to low_review_score_db with explicit handling for each period type
         try:
             # Use the custom method for creating/updating by unique fields
             low_doc = SalesTrend.objects(
@@ -47,7 +43,6 @@ def replicate_sales_trend_data(data):
                 # Explicitly force save to low_review_score_db
                 low_doc.switch_db('low_review_score_db')
                 low_doc.save()
-                logger.info(f"Updated existing {period_type} trend in low_review_score_db")
             else:
                 # Create new document with explicit DB selection
                 low_doc = SalesTrend(**data_copy)
