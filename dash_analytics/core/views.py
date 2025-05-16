@@ -13,6 +13,7 @@ import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.utils.timezone import now
 
 
 def initialize_data():
@@ -236,7 +237,7 @@ def signin(request):
             request.session['_auth_user_hash'] = ''
 
             # Update last login
-            user.last_login = datetime.utcnow()
+            user.last_login = now()
             user.save(skip_password_hash=True)
 
             return redirect('dashboard')
