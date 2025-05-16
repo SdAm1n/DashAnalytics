@@ -394,39 +394,115 @@ plt.show()
 
 """# **Prediction and Correlation**"""
 
-# predict future sales trend
-from prophet import Prophet
+# Create the target variable 'total_sales'
+df['total_sales'] = df['quantity'] * df['price']
 
-# Prepare data for Prophet
-sales_df = monthly_sales.rename(columns={'Month': 'ds', 'TotalPrice': 'y'})
+# Drop rows with missing values
+data_cleaned = df.dropna()
+# Select features for regression
+features = ['product_id', 'category_id', 'quantity', 'price', 'gender', 'age']
+target = 'total_sales'
 
-model = Prophet()
-model.fit(sales_df)
+# Encode categorical variables (e.g., gender) using one-hot encoding
+data_encoded = pd.get_dummies(data_cleaned[features], columns=['gender'], drop_first=True)
 
-# Predict next 6 months
-future = model.make_future_dataframe(periods=6, freq='M')
-forecast = model.predict(future)
+# Define feature matrix X and target variable y
+X = data_encoded
+y = data_cleaned[target]
+# Select features for regression
+features = ['product_id', 'category_id', 'quantity', 'price', 'gender', 'age']
+target = 'total_sales'
 
-# Plot forecast
-model.plot(forecast);
+# Encode categorical variables (e.g., gender) using one-hot encoding
+data_encoded = pd.get_dummies(data_cleaned[features], columns=['gender'], drop_first=True)
 
-# predict future top product
-# Group by product and calculate total sales
-product_sales = df.groupby('product_name')['TotalPrice'].sum().reset_index()
+# Define feature matrix X and target variable y
+X = data_encoded
+y = data_cleaned[target]
+from sklearn.model_selection import train_test_split
 
-# Sort top products
-top_products = product_sales.sort_values('TotalPrice', ascending=False).head(10)
+# Split the data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Plot
-import seaborn as sns
+from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 
-plt.figure(figsize=(10,5))
-sns.barplot(data=top_products, x='TotalPrice', y='product_name', palette='viridis')
-plt.title('Top 10 Products by Total Sales')
-plt.xlabel('Total Sales')
-plt.ylabel('Product Name')
+# Train RandomForestRegressor on the full dataset
+rf_model = RandomForestRegressor(n_estimators=100, max_depth=None, random_state=42)
+rf_model.fit(X, y)
+
+# Predict sales on the test data to simulate a future sales trend
+# Here, we predict using X_test for simplicity as a stand-in for future data
+y_pred = rf_model.predict(X_test)
+
+# Prepare data for visualization
+visualization_data = pd.DataFrame({
+    "Actual Sales": y_test,
+    "Predicted Sales": y_pred
+}).sort_index()  # Sort by index for continuity
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Create a scatter plot with a regression line
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x=visualization_data["Actual Sales"], y=visualization_data["Predicted Sales"], alpha=0.7, color="blue", s=50)
+sns.regplot(x=visualization_data["Actual Sales"], y=visualization_data["Predicted Sales"], scatter=False, color="red", label="Trend Line")
+
+# Add titles and labels
+plt.title("Scatter Plot of Actual vs. Predicted Sales", fontsize=16, weight="bold")
+plt.xlabel("Actual Sales", fontsize=14)
+plt.ylabel("Predicted Sales", fontsize=14)
+plt.legend(fontsize=12)
+plt.grid(True, linestyle="--", alpha=0.7)
+
+# Show the plot
+plt.tight_layout()
 plt.show()
+
+
+# Assuming you have the test set with product_id and predicted sales (y_pred)
+
+# Add predictions to test dataset
+test_with_pred = X_test.copy()
+test_with_pred['predicted_sales'] = y_pred
+test_with_pred['product_id'] = data_cleaned.loc[y_test.index, 'product_id'].values
+
+# Aggregate predicted sales by product
+product_sales_pred = test_with_pred.groupby('product_id')['predicted_sales'].sum().reset_index()
+
+# Sort products by predicted sales descending
+top_products = product_sales_pred.sort_values(by='predicted_sales', ascending=False)
+
+print(top_products.head(10))  # Top 10 products predicted to perform best
+import matplotlib.pyplot as plt
+# Get unique mapping of product_id to product_name
+product_info = data_cleaned[['product_id', 'product_name']].drop_duplicates()
+
+# Merge the top_products with product_info to get product names
+top_products_with_names = top_products.merge(product_info, on='product_id', how='left')
+
+top_n = 10
+plt.figure(figsize=(12,6))
+plt.bar(top_products_with_names['product_name'].head(top_n), top_products_with_names['predicted_sales'].head(top_n), color='skyblue')
+plt.xlabel('Product ID')
+plt.ylabel('Predicted Total Sales')
+plt.title(f'Top {top_n} Predicted Products by Sales')
+plt.xticks(rotation=45)
+plt.show()
+# Extract the top product_id
+top_product_id = top_products.iloc[0]['product_id']
+
+# Find the product name from the original dataset (removing duplicates)
+product_info = data_cleaned[['product_id', 'product_name']].drop_duplicates()
+
+# Get the product name for the top product
+top_product_name = product_info.loc[product_info['product_id'] == top_product_id, 'product_name'].values
+
+if len(top_product_name) > 0:
+    print(f"Top product predicted: {top_product_name[0]} (Product ID: {top_product_id})")
+else:
+    print(f"Top product ID: {top_product_id} (No name available in dataset)")
 
 # Compute correlation on all numeric columns automatically
 corr_matrix = df.corr(numeric_only=True)
