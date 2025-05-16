@@ -116,7 +116,7 @@ DATABASES = {
 }
 
 # MongoDB Atlas Configuration
-MONGODB_ATLAS_URI = 'mongodb+srv://22234103128:<database>@cluster0.7xlx1ef.mongodb.net/'
+MONGODB_ATLAS_URI = 'mongodb+srv://22234103128:Abcd0187@cluster0.7xlx1ef.mongodb.net/'
 
 # Multiple Database Configuration
 MONGODB_DATABASES = {
