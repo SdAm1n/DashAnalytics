@@ -174,12 +174,17 @@ def sales_trend(request):
     """
     # Get user theme preference
     theme = get_theme_preference(request)
+    
+    # Get unique categories for the filter dropdown - MongoDB/mongoengine doesn't support flat parameter
+    category_objects = Product.objects.distinct('category')
+    categories = category_objects if isinstance(category_objects, list) else list(category_objects)
 
     # Context data for sales trend
     context = {
         'title': 'Sales Trend',
         'active_page': 'sales_trend',
-        'theme': theme
+        'theme': theme,
+        'categories': categories
     }
 
     return render(request, 'core/sales_trend.html', context)
