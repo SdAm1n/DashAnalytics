@@ -1,39 +1,6 @@
-{% extends "base.html" %} {% block title %} Customer Behavior Analysis - Dash
-Analytics {% endblock %} {% block extra_head %}
-<!-- Make sure Chart.js is loaded before any other scripts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script>
-    // Create a global chart state tracker
-    window.chartState = {
-        chartReadyPromise: new Promise((resolve) => {
-            window.resolveChartReady = resolve;
-        }),
-        chartsRendered: {},
-        registerChart: function (chartId, status = false) {
-            this.chartsRendered[chartId] = status;
-            console.log(`Chart ${chartId} registered with status: ${status}`);
-        },
-        setChartRendered: function (chartId) {
-            this.chartsRendered[chartId] = true;
-            console.log(`Chart ${chartId} marked as rendered`);
-        },
-        isChartRendered: function (chartId) {
-            return this.chartsRendered[chartId] === true;
-        },
-    };
-
-    // Verify Chart.js is loaded
-    window.addEventListener("DOMContentLoaded", (event) => {
-        if (typeof Chart !== "undefined") {
-            console.log("Chart.js successfully loaded");
-            window.resolveChartReady();
-        } else {
-            console.error("Chart.js failed to load!");
-            // We'll still resolve to not block rendering, but use fallbacks
-            window.resolveChartReady();
-        }
-    });
-</script>
+{% extends "base.html" %} {% block title %}Customer Behavior Analysis - Dash
+Analytics{% endblock %} {% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %} {% block content %}
 <div class="container mx-auto px-4 py-6">
     <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">
@@ -67,20 +34,14 @@ Analytics {% endblock %} {% block extra_head %}
             >
                 Customer Loyalty
             </h2>
-            <div
-                class="h-80 w-full relative"
-                id="customer-loyalty-chart-container"
-            >
-                <!-- Chart will be rendered here -->
-                <div id="customer-loyalty-chart" class="absolute inset-0">
-                    <div class="flex items-center justify-center h-full">
-                        <div
-                            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
-                        ></div>
-                        <span class="ml-2 text-gray-600 dark:text-gray-400"
-                            >Loading chart...</span
-                        >
-                    </div>
+            <div class="h-80 w-full" id="customer-loyalty-chart">
+                <div class="flex items-center justify-center h-full">
+                    <div
+                        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
+                    ></div>
+                    <span class="ml-2 text-gray-600 dark:text-gray-400"
+                        >Loading chart...</span
+                    >
                 </div>
             </div>
         </div>
@@ -184,201 +145,7 @@ Analytics {% endblock %} {% block extra_head %}
 
 {% block scripts %}
 <script>
-    // Guaranteed fallback function to render the loyalty chart
-    function renderFallbackLoyaltyChart(customLabels, customValues) {
-        const chartId = "loyalty-chart";
-        console.log(`Running guaranteed fallback rendering for ${chartId}`);
-
-        const container = document.getElementById("customer-loyalty-chart");
-        if (!container) {
-            console.error(`Could not find ${chartId} container`);
-            return;
-        }
-
-        // Check if we already have a properly rendered chart using our chart state system
-        if (window.chartState && window.chartState.isChartRendered(chartId)) {
-            console.log(
-                `Chart ${chartId} already rendered according to state management, skipping fallback`
-            );
-            return;
-        }
-
-        // Also check DOM for rendered canvas as a double-check
-        const existingCanvas = document.getElementById(chartId);
-        if (
-            existingCanvas &&
-            existingCanvas.getAttribute("data-rendered") === "true"
-        ) {
-            // Check if the canvas has actual content
-            if (!isCanvasBlank(existingCanvas)) {
-                console.log(
-                    `Chart ${chartId} already properly rendered in DOM, marking as rendered in state`
-                );
-                window.chartState.setChartRendered(chartId);
-                return;
-            }
-        }
-
-        // Default data as a last resort if API fails completely
-        const defaultLabels = ["New", "Occasional", "Regular", "Loyal"];
-        const defaultValues = [250, 350, 300, 100];
-
-        // Use provided data or fallback to defaults
-        const labels = customLabels || defaultLabels;
-        const values = customValues || defaultValues;
-
-        // Define colors for the segments
-        const colors = [
-            "rgba(255, 99, 132)", // red - new
-            "rgba(255, 205, 86)", // yellow - occasional
-            "rgba(54, 162, 235)", // blue - regular
-            "rgba(75, 192, 192)", // green - loyal
-        ];
-
-        // Make sure we have enough colors for all segments
-        while (colors.length < labels.length) {
-            colors.push("rgba(153, 102, 255)"); // Add additional colors if needed
-        }
-
-        // Clear the container
-        container.innerHTML = "";
-
-        // Create a more sophisticated visualization that doesn't rely on Chart.js
-        const totalCustomers = values.reduce((sum, val) => sum + val, 0);
-
-        let fallbackHTML = `
-            <div class="flex items-center justify-center h-full">
-                <div class="w-full max-w-md">
-                    <h3 class="text-center text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Customer Loyalty Segments</h3>
-                    <div class="flex flex-wrap justify-center mb-4">`;
-
-        // Add colored circles for the legend
-        labels.forEach((label, i) => {
-            fallbackHTML += `
-                <div class="flex items-center mr-4 mb-2">
-                    <div class="w-4 h-4 rounded-full mr-1" style="background-color: ${colors[i]}"></div>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">${label}</span>
-                </div>`;
-        });
-
-        fallbackHTML += `
-                    </div>
-                    <div class="space-y-4">`;
-
-        // Add bar representation for each segment
-        labels.forEach((label, i) => {
-            const percentage = ((values[i] / totalCustomers) * 100).toFixed(1);
-            fallbackHTML += `
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <span class="font-medium text-gray-700 dark:text-gray-300">${label}</span>
-                        <span class="text-sm text-gray-700 dark:text-gray-300">${values[i]} (${percentage}%)</span>
-                    </div>
-                    <div class="w-full h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full" style="width: ${percentage}%; background-color: ${colors[i]}"></div>
-                    </div>
-                </div>`;
-        });
-
-        fallbackHTML += `
-                    </div>
-                </div>
-            </div>`;
-
-        container.innerHTML = fallbackHTML;
-        console.log(`Fallback ${chartId} rendered successfully`);
-
-        // Mark this fallback visualization as the rendered chart in our state management
-        window.chartState.setChartRendered(chartId);
-
-        // Also set the legacy flag for backward compatibility
-        window.loyaltyChartRendered = true;
-
-        // Cancel any pending fallback timers since we've already rendered the fallback
-        if (window.loyaltyFallbackTimer) {
-            clearTimeout(window.loyaltyFallbackTimer);
-            window.loyaltyFallbackTimer = null;
-        }
-    }
-
-    // Helper function to check if a canvas is blank/empty
-    function isCanvasBlank(canvas) {
-        // Get the canvas context
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return true;
-
-        // Get the pixel data from the entire canvas
-        const pixelData = ctx.getImageData(
-            0,
-            0,
-            canvas.width,
-            canvas.height
-        ).data;
-
-        // Check if all pixels are transparent or black (default canvas state)
-        for (let i = 0; i < pixelData.length; i += 4) {
-            // If any pixel has color or alpha, canvas is not blank
-            if (pixelData[i + 3] !== 0) {
-                // Alpha channel
-                return false;
-            }
-        }
-        return true;
-    }
-
     document.addEventListener("DOMContentLoaded", function () {
-        // If charts aren't showing after 5 seconds, use fallbacks
-        // Store the timer so it can be canceled if chart renders successfully before timeout
-        window.loyaltyFallbackTimer = setTimeout(function () {
-            const chartId = "loyalty-chart";
-
-            // Check if chart is rendered using our chart state management system
-            if (
-                window.chartState &&
-                window.chartState.isChartRendered(chartId)
-            ) {
-                console.log(
-                    `Chart ${chartId} already rendered according to state management, skipping fallback`
-                );
-                return;
-            }
-
-            // Also check the legacy flag for backward compatibility
-            if (window.loyaltyChartRendered === true) {
-                console.log(
-                    "Chart already rendered successfully according to legacy flag, skipping fallback"
-                );
-                return;
-            }
-
-            const canvas = document.getElementById(chartId);
-
-            // Only use fallback if the chart isn't rendered successfully
-            if (
-                !canvas ||
-                !canvas.getContext ||
-                canvas.getAttribute("data-rendered") !== "true"
-            ) {
-                console.log(
-                    `${chartId} not properly rendered after timeout, using fallback`
-                );
-                renderFallbackLoyaltyChart();
-            } else {
-                // Check if the canvas actually has content
-                if (isCanvasBlank(canvas)) {
-                    console.log(
-                        `${chartId} canvas is blank after timeout, using fallback`
-                    );
-                    renderFallbackLoyaltyChart();
-                } else {
-                    console.log(
-                        `${chartId} successfully rendered with Chart.js`
-                    );
-                    // Update state management since the chart is actually rendered
-                    window.chartState.setChartRendered(chartId);
-                }
-            }
-        }, 5000);
         // Load customer behavior data from API
         const fetchCustomerData = async () => {
             try {
@@ -411,28 +178,8 @@ Analytics {% endblock %} {% block extra_head %}
                     throw new Error(data.error);
                 }
 
-                console.log("API Response:", data);
-
                 // Render all charts with the API data
                 renderPurchaseFrequencyChart(data.purchase_frequency);
-
-                // Debug the customer loyalty data before rendering
-                console.log(
-                    "Customer loyalty data received:",
-                    data.customer_loyalty
-                );
-                if (
-                    data.customer_loyalty &&
-                    data.customer_loyalty.loyalty_segments
-                ) {
-                    console.log(
-                        "Loyalty segments:",
-                        data.customer_loyalty.loyalty_segments
-                    );
-                } else {
-                    console.warn("Invalid or missing customer loyalty data");
-                }
-
                 renderCustomerLoyaltyChart(data.customer_loyalty);
                 renderCustomerSegmentationChart(data.customer_segments);
                 renderPurchaseTimeChart(data.purchase_times);
@@ -575,232 +322,119 @@ Analytics {% endblock %} {% block extra_head %}
         }
 
         function renderCustomerLoyaltyChart(data) {
-            const chartId = "loyalty-chart";
             const container = document.getElementById("customer-loyalty-chart");
-            const parentContainer = document.getElementById(
-                "customer-loyalty-chart-container"
-            );
-
-            // Register this chart with our chart state management system if not already registered
-            if (!window.chartState.chartsRendered.hasOwnProperty(chartId)) {
-                window.chartState.registerChart(chartId, false);
-            }
-
-            // Check if we already have a properly rendered chart using our chart state system
-            if (window.chartState.isChartRendered(chartId)) {
-                console.log(
-                    `Chart ${chartId} already rendered, skipping re-rendering`
-                );
-                return;
-            }
-
-            // Also check DOM for rendered canvas as a double-check
-            const existingCanvas = document.getElementById(chartId);
-            if (
-                existingCanvas &&
-                existingCanvas.getAttribute("data-rendered") === "true" &&
-                !isCanvasBlank(existingCanvas)
-            ) {
-                console.log(
-                    `Chart ${chartId} already rendered in DOM, marking as rendered in state`
-                );
-                window.chartState.setChartRendered(chartId);
-                return;
-            }
-
             container.innerHTML = "";
 
-            console.log("Customer loyalty data:", data);
-
-            // Handle missing or invalid data
             if (!data || !data.loyalty_segments) {
-                console.error("Missing loyalty segments data:", data);
                 container.innerHTML =
                     '<div class="flex items-center justify-center h-full"><p class="text-gray-600 dark:text-gray-400">No loyalty data available</p></div>';
                 return;
             }
-
-            // Create a wrapper div with proper size
-            const chartWrapper = document.createElement("div");
-            chartWrapper.style.position = "relative";
-            chartWrapper.style.width = "100%";
-            chartWrapper.style.height = "100%";
 
             // Create canvas for Chart.js
             const canvas = document.createElement("canvas");
-            canvas.id = chartId;
-            chartWrapper.appendChild(canvas);
-            container.appendChild(chartWrapper);
+            canvas.id = "loyalty-chart";
+            container.appendChild(canvas);
 
-            // Extract data - handle both array and object formats for backward compatibility
-            let labels = [];
-            let values = [];
+            const ctx = canvas.getContext("2d");
 
-            // First check if data is in expected object format
-            if (
-                data.loyalty_segments &&
-                typeof data.loyalty_segments === "object"
-            ) {
-                // Standard object format
-                if (!Array.isArray(data.loyalty_segments)) {
-                    const segments = data.loyalty_segments;
-                    labels = Object.keys(segments).map(
-                        (key) => key.charAt(0).toUpperCase() + key.slice(1)
-                    );
-                    values = Object.values(segments);
-                }
-                // Handle array format if API returns that instead
-                else if (
-                    Array.isArray(data.loyalty_segments) &&
-                    data.loyalty_segments.length > 0
-                ) {
-                    // Try to extract from array of objects
-                    const firstItem = data.loyalty_segments[0];
-                    if (firstItem && typeof firstItem === "object") {
-                        // Assume objects with keys like {name: "New", value: 250}
-                        const nameKey =
-                            "name" in firstItem
-                                ? "name"
-                                : "label" in firstItem
-                                ? "label"
-                                : "segment";
-                        const valueKey =
-                            "value" in firstItem
-                                ? "value"
-                                : "count" in firstItem
-                                ? "count"
-                                : "total";
+            // Extract data
+            const segments = data.loyalty_segments;
 
-                        labels = data.loyalty_segments.map(
-                            (item) => item[nameKey]
-                        );
-                        values = data.loyalty_segments.map(
-                            (item) => item[valueKey]
-                        );
-                    }
-                }
-            }
+            // Debug log to verify loyalty segments
+            console.log("Loyalty segments data:", segments);
 
-            // If we still have no data, use default labels
-            if (labels.length === 0) {
-                labels = ["New", "Occasional", "Regular", "Loyal"];
-                values = [250, 350, 300, 100]; // Default values
-            }
+            // Check if we have any data (non-zero values)
+            const hasData = Object.values(segments).some((value) => value > 0);
 
-            console.log(`Chart ${chartId} data - labels:`, labels);
-            console.log(`Chart ${chartId} data - values:`, values);
-
-            // Fix zero or undefined values to ensure chart renders
-            const fixedValues = values.map((v) =>
-                v === undefined || v === null || isNaN(v) || v === 0 ? 10 : v
-            );
-
-            // Normalize values if all are very small
-            if (Math.max(...fixedValues) < 10) {
-                console.log(
-                    "All values are very small, normalizing for better visualization"
-                );
-                for (let i = 0; i < fixedValues.length; i++) {
-                    fixedValues[i] = fixedValues[i] * 10;
-                }
-            }
-
-            // Make sure we have valid data
-            const hasValidData = fixedValues.some((v) => v > 0);
-            if (!hasValidData) {
-                console.error(`No valid data points for ${chartId}`);
+            if (!hasData) {
                 container.innerHTML =
                     '<div class="flex items-center justify-center h-full"><p class="text-gray-600 dark:text-gray-400">No loyalty data available</p></div>';
-                renderFallbackLoyaltyChart(labels, values);
                 return;
             }
 
-            // Debug values in console only, not in the UI
-            console.debug(
-                `Chart data values: ${labels
-                    .map((l, i) => `${l}: ${fixedValues[i]}`)
-                    .join(", ")}`
-            );
+            // Define segment display names and colors
+            const segmentDefinitions = [
+                { key: "new", label: "New", color: "rgba(255, 99, 132, 0.7)" }, // red
+                {
+                    key: "occasional",
+                    label: "Occasional",
+                    color: "rgba(255, 205, 86, 0.7)",
+                }, // yellow
+                {
+                    key: "regular",
+                    label: "Regular",
+                    color: "rgba(54, 162, 235, 0.7)",
+                }, // blue
+                {
+                    key: "loyal",
+                    label: "Loyal",
+                    color: "rgba(75, 192, 192, 0.7)",
+                }, // green
+            ];
 
-            try {
-                // Get canvas context - do this only after it's inserted into the DOM
-                const ctx = canvas.getContext("2d");
-                if (!ctx) {
-                    throw new Error("Could not get canvas context");
-                }
+            // Extract only segments that have values > 0
+            const filteredSegments = segmentDefinitions
+                .filter((segment) => segments[segment.key] > 0)
+                .map((segment) => ({
+                    key: segment.key,
+                    label: segment.label,
+                    value: segments[segment.key],
+                    color: segment.color,
+                }));
 
-                // Define colors for segments
-                const segmentColors = [
-                    "rgba(255, 99, 132, 0.7)", // red - new
-                    "rgba(255, 205, 86, 0.7)", // yellow - occasional
-                    "rgba(54, 162, 235, 0.7)", // blue - regular
-                    "rgba(75, 192, 192, 0.7)", // green - loyal
-                ];
+            const labels = filteredSegments.map((segment) => segment.label);
+            const values = filteredSegments.map((segment) => segment.value);
+            const colors = filteredSegments.map((segment) => segment.color);
 
-                // Simplified Chart.js configuration to ensure it renders
-                const loyaltyChart = new Chart(ctx, {
-                    type: "doughnut",
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                data: fixedValues,
-                                backgroundColor: segmentColors,
-                            },
-                        ],
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: "right",
-                            },
-                            tooltip: {
-                                enabled: true,
-                            },
-                            title: {
-                                display: true,
-                                text: "Customer Loyalty Segments",
+            // Debug log to verify filtered segments and capitalized labels
+            console.log("Filtered segments:", filteredSegments);
+            console.log("Chart labels:", labels);
+
+            // Create chart
+            new Chart(ctx, {
+                type: "doughnut",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            data: values,
+                            backgroundColor: colors,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: "right",
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const total = values.reduce(
+                                        (a, b) => a + b,
+                                        0
+                                    );
+                                    const percentage =
+                                        total > 0
+                                            ? (
+                                                  (context.raw / total) *
+                                                  100
+                                              ).toFixed(1)
+                                            : "0.0";
+                                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                                },
                             },
                         },
+                        title: {
+                            display: true,
+                            text: "Customer Loyalty Segments",
+                        },
                     },
-                });
-
-                // Mark the chart as successfully rendered in DOM
-                canvas.setAttribute("data-rendered", "true");
-                console.log(`Chart ${chartId} created successfully`);
-
-                // Verify chart rendering with a small delay to ensure Chart.js has finished drawing
-                setTimeout(() => {
-                    if (!isCanvasBlank(canvas)) {
-                        // Update our chart state management
-                        window.chartState.setChartRendered(chartId);
-
-                        // Also set the legacy flag for backward compatibility
-                        window.loyaltyChartRendered = true;
-
-                        console.log(
-                            `Chart ${chartId} verified as rendered, updated state management`
-                        );
-
-                        // Disable any pending fallback timer to prevent double rendering
-                        if (window.loyaltyFallbackTimer) {
-                            console.log("Clearing pending fallback timer");
-                            clearTimeout(window.loyaltyFallbackTimer);
-                            window.loyaltyFallbackTimer = null;
-                        }
-                    } else {
-                        console.error(
-                            `Chart ${chartId} canvas is blank after render attempt`
-                        );
-                        renderFallbackLoyaltyChart(labels, fixedValues);
-                    }
-                }, 500); // Small delay to ensure Chart.js has time to render
-            } catch (err) {
-                console.error(`Error creating chart ${chartId}:`, err);
-                renderFallbackLoyaltyChart(labels, fixedValues);
-            }
+                },
+            });
         }
 
         function renderCustomerSegmentationChart(data) {
