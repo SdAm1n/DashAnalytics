@@ -1,8 +1,8 @@
 from django.urls import path
 from .views import (
-    index, dashboard, sales_trend, product_performance, demographics,
-    geographical_insights, customer_behavior, prediction, data_upload,
-    signin, signup, logout_view, profile
+    index, dashboard, sales_trend, product_performance, demographics, demographics_debug,
+    demographics_standalone, geographical_insights, customer_behavior, prediction, data_upload,
+    signin, signup, logout_view, profile, chart_test_view
 )
 
 urlpatterns = [
@@ -18,6 +18,10 @@ urlpatterns = [
     path('sales-trend/', sales_trend, name='sales_trend'),
     path('product-performance/', product_performance, name='product_performance'),
     path('demographics/', demographics, name='demographics'),
+    path('demographics-debug/', demographics_debug, name='demographics_debug'),
+    path('demographics-standalone/', demographics_standalone,
+         name='demographics_standalone'),
+    path('chart-test/', chart_test_view, name='chart_test'),
     path('geographical-insights/', geographical_insights,
          name='geographical_insights'),
     path('customer-behavior/', customer_behavior, name='customer_behavior'),

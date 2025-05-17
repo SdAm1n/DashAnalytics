@@ -768,3 +768,238 @@ class CustomerBehaviorView(APIView):
         except Exception as e:
             print(f"Error in get_top_customers: {str(e)}")
             return []
+
+
+class DemographicsView(APIView):
+    """API endpoint for Demographics data"""
+    # For development purposes, we're temporarily disabling authentication
+    # TODO: Re-enable IsAuthenticated for production use
+    permission_classes = []  # Empty list = no authentication required
+
+    def get(self, request):
+        """Get demographics data based on time period filter"""
+        try:
+            # Extract query parameters
+            period = request.GET.get('period', '1y')  # Default to 1 year
+
+            # Calculate date range based on period
+            date_to = datetime.now()
+            if period == '7d':
+                date_from = date_to - pd.DateOffset(days=7)
+            elif period == '30d':
+                date_from = date_to - pd.DateOffset(days=30)
+            elif period == '90d':
+                date_from = date_to - pd.DateOffset(days=90)
+            elif period == '1y':
+                date_from = date_to - pd.DateOffset(years=1)
+            else:  # 'all' time
+                date_from = None
+
+            # Query customers and sales data
+            customers = list(Customer.objects)
+
+            # Query relevant sales
+            sales_query = Sales.objects
+            if date_from:
+                sales_query = sales_query.filter(
+                    sale_date__gte=date_from, sale_date__lte=date_to)
+            sales = list(sales_query)
+
+            # Check if we have data
+            if not customers:
+                return Response({'error': 'No customer data found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Create DataFrames for analysis
+            customers_df = pd.DataFrame([
+                {
+                    'customer_id': str(customer.customer_id),
+                    'gender': customer.gender,
+                    'age': int(customer.age),
+                    'city': customer.city
+                } for customer in customers
+            ])
+
+            sales_df = pd.DataFrame([
+                {
+                    'customer_id': str(sale.customer_id),
+                    'sale_date': sale.sale_date,
+                    'revenue': float(sale.revenue),
+                    'product_id': str(sale.product_id)
+                } for sale in sales
+            ])
+
+            # Merge data for analysis
+            if not sales_df.empty:
+                # Filter customers that have sales in the selected period
+                merged_df = pd.merge(
+                    sales_df,
+                    customers_df,
+                    on='customer_id',
+                    how='inner'
+                )
+                active_customers = customers_df[customers_df['customer_id'].isin(
+                    sales_df['customer_id'])]
+            else:
+                merged_df = pd.DataFrame()
+                active_customers = pd.DataFrame()
+
+            # Calculate age distribution
+            age_bins = [0, 18, 25, 35, 45, 55, 65, 100]
+            age_labels = ['Under 18', '18-24', '25-34',
+                          '35-44', '45-54', '55-64', '65+']
+
+            customers_df['age_group'] = pd.cut(
+                customers_df['age'],
+                bins=age_bins,
+                labels=age_labels,
+                right=False
+            )
+
+            age_distribution = customers_df.groupby(
+                'age_group', observed=True).size().reindex(age_labels, fill_value=0)
+
+            # Calculate gender distribution
+            gender_distribution = customers_df['gender'].value_counts()
+            male_count = int(gender_distribution.get('M', 0))
+            female_count = int(gender_distribution.get('F', 0))
+
+            # Calculate gender distribution by age group
+            gender_age_dist = customers_df.groupby(
+                ['age_group', 'gender'], observed=True).size().unstack(fill_value=0)
+            gender_age_distribution = {
+                'age_groups': age_labels,
+                'male': [int(gender_age_dist.get('M', {}).get(age, 0)) for age in age_labels],
+                'female': [int(gender_age_dist.get('F', {}).get(age, 0)) for age in age_labels]
+            }
+
+            # Calculate sales metrics by age group if we have sales data
+            if not merged_df.empty:
+                merged_df['age_group'] = pd.cut(
+                    merged_df['age'],
+                    bins=age_bins,
+                    labels=age_labels,
+                    right=False
+                )
+
+                age_sales = merged_df.groupby('age_group', observed=True)[
+                    'revenue'].sum().reindex(age_labels, fill_value=0)
+
+                # Gender & age sales distribution
+                # Properly handle the multi-index DataFrame
+                gender_age_sales = merged_df.groupby(
+                    ['gender', 'age_group'], observed=True)['revenue'].sum()
+
+                # Get sales for each gender and age group
+                male_sales = []
+                female_sales = []
+
+                # Iterate through age groups to get correct values
+                for age in age_labels:
+                    # Try to get male sales by index tuple
+                    try:
+                        if ('M', age) in gender_age_sales.index:
+                            male_sales.append(
+                                float(gender_age_sales[('M', age)]))
+                        else:
+                            male_sales.append(0.0)
+                    except:
+                        male_sales.append(0.0)
+
+                    # Try to get female sales by index tuple
+                    try:
+                        if ('F', age) in gender_age_sales.index:
+                            female_sales.append(
+                                float(gender_age_sales[('F', age)]))
+                        else:
+                            female_sales.append(0.0)
+                    except:
+                        female_sales.append(0.0)
+
+                # Log for debugging
+                print(f"Male Sales: {male_sales}")
+                print(f"Female Sales: {female_sales}")
+            else:
+                age_sales = pd.Series(0, index=age_labels)
+                male_sales = [0] * len(age_labels)
+                female_sales = [0] * len(age_labels)
+
+            # Prepare detailed demographics table data
+            detailed_demographics = []
+            for age in age_labels:
+                if not merged_df.empty:
+                    age_group_data = merged_df[merged_df['age_group'] == age]
+                    total_customers = int(
+                        customers_df[customers_df['age_group'] == age].shape[0])
+                    male_customers = int(customers_df[(customers_df['age_group'] == age) & (
+                        customers_df['gender'] == 'M')].shape[0])
+                    female_customers = int(customers_df[(customers_df['age_group'] == age) & (
+                        customers_df['gender'] == 'F')].shape[0])
+                    total_sales = float(age_group_data['revenue'].sum())
+
+                    # Calculate average order value
+                    customer_sales = age_group_data.groupby('customer_id')[
+                        'revenue'].sum()
+                    avg_order_value = float(
+                        customer_sales.mean()) if not customer_sales.empty else 0.0
+                else:
+                    total_customers = int(
+                        customers_df[customers_df['age_group'] == age].shape[0])
+                    male_customers = int(customers_df[(customers_df['age_group'] == age) & (
+                        customers_df['gender'] == 'M')].shape[0])
+                    female_customers = int(customers_df[(customers_df['age_group'] == age) & (
+                        customers_df['gender'] == 'F')].shape[0])
+                    total_sales = 0.0
+                    avg_order_value = 0.0
+
+                detailed_demographics.append({
+                    'age_group': age,
+                    'total_customers': total_customers,
+                    'male_customers': male_customers,
+                    'female_customers': female_customers,
+                    'total_sales': total_sales,
+                    'avg_order_value': avg_order_value
+                })
+
+            # Calculate key metrics
+            average_age = float(
+                customers_df['age'].mean()) if 'age' in customers_df else 0
+            gender_ratio = male_count / female_count if female_count > 0 else 0
+
+            # Find most active age group
+            if not merged_df.empty:
+                age_activity = merged_df.groupby(
+                    'age_group', observed=True).size()
+                most_active_age_group = age_activity.idxmax() if not age_activity.empty else "N/A"
+            else:
+                most_active_age_group = "N/A"
+
+            # Prepare response
+            response_data = {
+                'average_age': average_age,
+                'gender_ratio': gender_ratio,
+                'most_active_age_group': most_active_age_group,
+                'age_distribution': {
+                    'labels': age_labels,
+                    'values': age_distribution.tolist()
+                },
+                'gender_distribution': {
+                    'male': male_count,
+                    'female': female_count
+                },
+                'gender_age_distribution': gender_age_distribution,
+                'age_sales': {
+                    'age_groups': age_labels,
+                    'sales': age_sales.tolist()
+                },
+                'gender_age_sales': {
+                    'age_groups': age_labels,
+                    'male_sales': male_sales,
+                    'female_sales': female_sales
+                },
+                'detailed_demographics': detailed_demographics
+            }
+
+            return Response(response_data)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

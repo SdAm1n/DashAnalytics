@@ -1,5 +1,5 @@
-{% extends "base.html" %} {% block title %} Demographics - DashAnalytics
-{%endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Demographics - DashAnalytics{%
+endblock %} {% block content %}
 <div class="container mx-auto py-8">
     <!-- Filters -->
     <div class="mb-6 bg-white dark:bg-gray-800 shadow rounded-lg p-4">
@@ -213,7 +213,12 @@
     </div>
 </div>
 {% endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    const gridColor = isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
+    const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+
     // Chart instances
     let ageDistChart = null;
     let genderDistChart = null;
@@ -221,42 +226,70 @@
     let ageSalesChart = null;
     let genderAgeSalesChart = null;
 
-    // Theme-aware colors
-    const isDarkMode = document.documentElement.classList.contains("dark");
-    const gridColor = isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
-    const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+    // Status message
+    const statusMessage = document.getElementById("status-message");
 
-    // Status message functions
     function showStatus(message, isError = false) {
-        const statusEl = document.getElementById("status-message");
-        statusEl.className = isError
-            ? "mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700"
-            : "mb-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700";
-        statusEl.innerHTML = `<p>${message}</p>`;
-        statusEl.classList.remove("hidden");
+        statusMessage.textContent = message;
+        statusMessage.classList.remove(
+            "hidden",
+            "bg-yellow-100",
+            "border-yellow-500",
+            "text-yellow-700",
+            "bg-red-100",
+            "border-red-500",
+            "text-red-700",
+            "bg-green-100",
+            "border-green-500",
+            "text-green-700"
+        );
 
-        if (!isError) {
-            setTimeout(() => {
-                statusEl.classList.add("hidden");
-            }, 3000);
+        if (isError) {
+            statusMessage.classList.add(
+                "bg-red-100",
+                "border-red-500",
+                "text-red-700"
+            );
+        } else {
+            statusMessage.classList.add(
+                "bg-yellow-100",
+                "border-yellow-500",
+                "text-yellow-700"
+            );
         }
+
+        statusMessage.classList.remove("hidden");
+    }
+
+    function hideStatus() {
+        statusMessage.classList.add("hidden");
     }
 
     function showSuccess(message) {
-        const statusEl = document.getElementById("status-message");
-        statusEl.className =
-            "mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700";
-        statusEl.innerHTML = `<p>${message}</p>`;
-        statusEl.classList.remove("hidden");
+        statusMessage.textContent = message;
+        statusMessage.classList.remove(
+            "hidden",
+            "bg-yellow-100",
+            "border-yellow-500",
+            "text-yellow-700",
+            "bg-red-100",
+            "border-red-500",
+            "text-red-700"
+        );
+        statusMessage.classList.add(
+            "bg-green-100",
+            "border-green-500",
+            "text-green-700"
+        );
 
+        // Auto-hide after 3 seconds
         setTimeout(() => {
-            statusEl.classList.add("hidden");
+            statusMessage.classList.add("hidden");
         }, 3000);
     }
 
-    // Initialize and add event listeners
     document.addEventListener("DOMContentLoaded", function () {
-        console.log("DOM Content Loaded");
+        console.log("DOM loaded, initializing charts...");
         loadDemographicsData();
 
         document
@@ -264,12 +297,11 @@
             .addEventListener("click", loadDemographicsData);
     });
 
-    // Load data from API
     function loadDemographicsData() {
         const period = document.getElementById("time-period").value;
 
         console.log("Loading demographics data for period:", period);
-        showStatus("Loading demographics data...");
+        showStatus("Loading demographic data...");
 
         fetch(`/api/analytics/demographics/?period=${period}`)
             .then((response) => {
@@ -304,7 +336,6 @@
             });
     }
 
-    // Update metrics display
     function updateMetrics(data) {
         document.getElementById("avg-age-metric").textContent =
             data.average_age.toFixed(1);
@@ -314,7 +345,6 @@
             data.most_active_age_group;
     }
 
-    // Age Distribution Chart
     function renderAgeDistribution(data) {
         console.log("Rendering age distribution chart with data:", data);
 
@@ -369,7 +399,6 @@
                             },
                         },
                         y: {
-                            beginAtZero: true,
                             grid: {
                                 color: gridColor,
                             },
@@ -387,31 +416,17 @@
         }
     }
 
-    // Gender Distribution Chart
     function renderGenderDistribution(data) {
         console.log("Rendering gender distribution chart with data:", data);
 
         const chartCanvas = document.getElementById("genderDistributionChart");
-        if (!chartCanvas) {
-            console.error(
-                "Gender distribution chart canvas element not found!"
-            );
-            return;
-        }
-
         const ctx = chartCanvas.getContext("2d");
-        if (!ctx) {
-            console.error("Could not get 2D context for gender chart");
-            return;
-        }
 
         if (genderDistChart) {
-            console.log("Destroying existing gender chart");
             genderDistChart.destroy();
         }
 
         try {
-            console.log("Creating new gender chart");
             genderDistChart = new Chart(ctx, {
                 type: "pie",
                 data: {
@@ -446,29 +461,17 @@
         }
     }
 
-    // Gender Age Distribution Chart
     function renderGenderAgeDistribution(data) {
         console.log("Rendering gender age distribution chart with data:", data);
 
         const chartCanvas = document.getElementById("genderAgeChart");
-        if (!chartCanvas) {
-            console.error("Gender age chart canvas element not found!");
-            return;
-        }
-
         const ctx = chartCanvas.getContext("2d");
-        if (!ctx) {
-            console.error("Could not get 2D context for gender age chart");
-            return;
-        }
 
         if (genderAgeChart) {
-            console.log("Destroying existing gender age chart");
             genderAgeChart.destroy();
         }
 
         try {
-            console.log("Creating new gender age chart");
             genderAgeChart = new Chart(ctx, {
                 type: "bar",
                 data: {
@@ -511,7 +514,6 @@
                             },
                         },
                         y: {
-                            beginAtZero: true,
                             grid: {
                                 color: gridColor,
                             },
@@ -529,29 +531,17 @@
         }
     }
 
-    // Age Sales Chart
     function renderAgeSales(data) {
         console.log("Rendering age sales chart with data:", data);
 
         const chartCanvas = document.getElementById("ageSalesChart");
-        if (!chartCanvas) {
-            console.error("Age sales chart canvas element not found!");
-            return;
-        }
-
         const ctx = chartCanvas.getContext("2d");
-        if (!ctx) {
-            console.error("Could not get 2D context for age sales chart");
-            return;
-        }
 
         if (ageSalesChart) {
-            console.log("Destroying existing age sales chart");
             ageSalesChart.destroy();
         }
 
         try {
-            console.log("Creating new age sales chart");
             ageSalesChart = new Chart(ctx, {
                 type: "bar",
                 data: {
@@ -584,15 +574,13 @@
                             },
                         },
                         y: {
-                            beginAtZero: true,
                             grid: {
                                 color: gridColor,
                             },
                             ticks: {
                                 color: textColor,
-                                callback: function (value) {
-                                    return "$" + value.toLocaleString();
-                                },
+                                callback: (value) =>
+                                    "$" + value.toLocaleString(),
                             },
                         },
                     },
@@ -605,170 +593,40 @@
         }
     }
 
-    // Gender Age Sales Chart
     function renderGenderAgeSales(data) {
         console.log("Rendering gender age sales chart with data:", data);
 
         const chartCanvas = document.getElementById("genderAgeSalesChart");
-        if (!chartCanvas) {
-            console.error("Gender age sales chart canvas element not found!");
-            return;
-        }
-
         const ctx = chartCanvas.getContext("2d");
-        if (!ctx) {
-            console.error(
-                "Could not get 2D context for gender age sales chart"
-            );
-            return;
-        }
 
         if (genderAgeSalesChart) {
-            console.log("Destroying existing gender age sales chart");
             genderAgeSalesChart.destroy();
-        } // Create a better horizontal bar chart with age groups on y-axis for clearer comparison
+        }
+
         try {
-            console.log("Creating new gender age sales chart");
-
-            // Validate data to ensure it's showing correctly
-            // Force all values to be numeric and handle any null/undefined values
-            const maleSales = data.male_sales.map((val) =>
-                typeof val === "number" ? val : 0
-            );
-            const femaleSales = data.female_sales.map((val) =>
-                typeof val === "number" ? val : 0
-            );
-
-            // Check if we have any non-zero data
-            const hasData =
-                maleSales.some((val) => val > 0) ||
-                femaleSales.some((val) => val > 0);
-
-            // If no data, provide a message in the chart
-            if (!hasData) {
-                console.log("No sales data available for gender/age chart");
-
-                // Create a message chart
-                genderAgeSalesChart = new Chart(ctx, {
-                    type: "bar",
-                    data: {
-                        datasets: [],
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: "No sales data available for the selected period",
-                                font: {
-                                    size: 16,
-                                },
-                                color: textColor,
-                            },
-                        },
-                    },
-                });
-                return; // Exit the function early
-            }
-
-            // Create consistent colors for male and female
-            const maleColor = "rgba(14, 165, 233, 0.8)"; // Blue
-            const femaleColor = "rgba(236, 72, 153, 0.8)"; // Pink
-
             genderAgeSalesChart = new Chart(ctx, {
                 type: "bar",
                 data: {
-                    labels: data.age_groups,
-                    datasets: [
-                        {
-                            label: "Male",
-                            data: maleSales,
-                            backgroundColor: maleColor,
-                            borderColor: maleColor.replace("0.8", "1"),
-                            borderWidth: 1,
-                        },
-                        {
-                            label: "Female",
-                            data: femaleSales,
-                            backgroundColor: femaleColor,
-                            borderColor: femaleColor.replace("0.8", "1"),
-                            borderWidth: 1,
-                        },
-                    ],
+                    labels: ["Male", "Female"],
+                    datasets: data.age_groups.map((age_group, index) => ({
+                        label: age_group,
+                        data: [
+                            data.male_sales[index],
+                            data.female_sales[index],
+                        ],
+                        backgroundColor: `hsla(${
+                            (index * 360) / data.age_groups.length
+                        }, 70%, 60%, 0.8)`,
+                    })),
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    // Set a base animation for smoother rendering
-                    animation: {
-                        duration: 1000,
-                        easing: "easeOutQuart",
-                    },
-                    layout: {
-                        padding: {
-                            // Add some padding to ensure y-axis labels are fully visible
-                            left: 10,
-                            right: 10,
-                            top: 10,
-                            bottom: 10,
-                        },
-                    },
                     plugins: {
                         legend: {
-                            position: "top",
+                            position: "right",
                             labels: {
                                 color: textColor,
-                                usePointStyle: true,
-                                pointStyle: "circle",
-                                padding: 20,
-                                font: {
-                                    size: 12,
-                                },
-                            },
-                        },
-                        tooltip: {
-                            backgroundColor: isDarkMode
-                                ? "rgba(26, 32, 44, 0.9)"
-                                : "rgba(255, 255, 255, 0.9)",
-                            titleColor: isDarkMode ? "#ffffff" : "#000000",
-                            bodyColor: isDarkMode ? "#e2e8f0" : "#1a202c",
-                            borderColor: isDarkMode ? "#2d3748" : "#e2e8f0",
-                            borderWidth: 1,
-                            padding: 12,
-                            displayColors: true,
-                            callbacks: {
-                                title: function (tooltipItems) {
-                                    // Show age group as the title
-                                    return tooltipItems[0].label;
-                                },
-                                label: function (context) {
-                                    let label = context.dataset.label || "";
-                                    if (label) {
-                                        label += ": ";
-                                    }
-                                    // Format currency with $ and proper comma separators
-                                    label +=
-                                        "$" +
-                                        context.raw.toLocaleString(undefined, {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        });
-                                    return label;
-                                },
-                            },
-                        },
-                        title: {
-                            display: true,
-                            text: "Sales Distribution by Gender and Age",
-                            color: textColor,
-                            font: {
-                                size: 16,
-                                weight: "bold",
-                            },
-                            padding: {
-                                top: 10,
-                                bottom: 20,
                             },
                         },
                     },
@@ -779,66 +637,18 @@
                             },
                             ticks: {
                                 color: textColor,
-                                font: {
-                                    weight: "bold",
-                                },
-                                // Ensure labels don't get cut off
-                                padding: 5,
-                            },
-                            title: {
-                                display: true,
-                                text: "Age Groups",
-                                color: textColor,
-                                font: {
-                                    size: 14,
-                                    weight: "bold",
-                                },
-                                padding: {
-                                    top: 10,
-                                },
                             },
                         },
                         y: {
-                            beginAtZero: true,
-                            min: 0, // Force minimum to be exactly 0
                             grid: {
                                 color: gridColor,
-                                drawOnChartArea: true,
-                                drawTicks: true,
-                                // Draw a more visible zero line
-                                z: 1,
-                                tickBorderDash: [],
-                                tickBorderDashOffset: 0,
-                            },
-                            border: {
-                                display: true,
                             },
                             ticks: {
                                 color: textColor,
-                                // Ensure we show zero and format all values as currency
-                                callback: function (value) {
-                                    return (
-                                        "$" +
-                                        value.toLocaleString(undefined, {
-                                            minimumFractionDigits: 0,
-                                            maximumFractionDigits: 0,
-                                        })
-                                    );
-                                },
-                                // Make sure we include zero tick
-                                includeBounds: true,
+                                callback: (value) =>
+                                    "$" + value.toLocaleString(),
                             },
-                            // Not stacked - show side by side for better comparison
-                            stacked: false,
-                            // Make sure the bars don't get cut off at the top
-                            suggestedMax: function (context) {
-                                const data = context.chart.data;
-                                // Find max value and add 10% padding
-                                const maxMale = Math.max(...maleSales);
-                                const maxFemale = Math.max(...femaleSales);
-                                const overallMax = Math.max(maxMale, maxFemale);
-                                return overallMax * 1.1;
-                            },
+                            stacked: true,
                         },
                     },
                 },
@@ -850,7 +660,6 @@
         }
     }
 
-    // Demographics Table
     function renderDemographicsTable(data) {
         console.log("Rendering demographics table with data:", data);
 

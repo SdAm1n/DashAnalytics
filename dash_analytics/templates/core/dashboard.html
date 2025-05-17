@@ -1,5 +1,7 @@
 {% extends "base.html" %} 
-{% block title %}Dashboard - Dash Analytics{% endblock %} 
+{% block title %}
+Dashboard - Dash Analytics
+{% endblock%} 
 {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- Stats Cards -->
@@ -336,7 +338,8 @@
         </div>
     </div>
 </div>
-{% endblock %} {% block extra_js %}
+{% endblock %} 
+{% block extra_js %}
 <script>
     // Function to format currency
     function formatCurrency(amount) {
