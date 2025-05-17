@@ -385,8 +385,8 @@ class CustomerBehaviorView(APIView):
             # 1. Purchase Frequency Analysis
             purchase_freq = self.analyze_purchase_frequency(df)
 
-            # 2. Customer Loyalty Analysis
-            customer_loyalty = self.analyze_customer_loyalty(df)
+            # 2. Customer Sentiment Analysis (replacing loyalty analysis)
+            customer_sentiment = self.analyze_sentiment()
 
             # 3. Customer Segmentation
             customer_segments = self.analyze_customer_segments()
@@ -400,7 +400,7 @@ class CustomerBehaviorView(APIView):
             # Combine all data into a single response
             response_data = {
                 'purchase_frequency': purchase_freq,
-                'customer_loyalty': customer_loyalty,
+                'customer_sentiment': customer_sentiment,  # Changed from customer_loyalty
                 'customer_segments': customer_segments,
                 'purchase_times': purchase_times,
                 'top_customers': top_customers
@@ -446,87 +446,77 @@ class CustomerBehaviorView(APIView):
                 'median_purchases': 0
             }
 
-    def analyze_customer_loyalty(self, df):
-        """Analyze customer loyalty based on repeat purchases"""
+    def analyze_sentiment(self):
+        """Analyze customer sentiment based on review scores"""
         try:
-            # Group by customer
-            customers = df.groupby('customer_id')
+            from textblob import TextBlob
 
-            # Calculate days between first and last purchase
-            customer_loyalty = []
-            for customer_id, group in customers:
-                try:
-                    dates = sorted(group['sale_date'].dropna())
-                    if len(dates) > 1:
-                        first_purchase = min(dates)
-                        last_purchase = max(dates)
-                        days_active = (last_purchase - first_purchase).days
-                        total_purchases = len(dates)
-                        total_spent = group['revenue'].sum() or 0
+            # Query orders that have review scores (MongoEngine syntax)
+            orders_with_reviews = Order.objects(review_score__ne=None)
 
-                        # Prevent division by zero with max function
-                        customer_loyalty.append({
-                            'customer_id': customer_id,
-                            'days_active': days_active,
-                            'total_purchases': total_purchases,
-                            'total_spent': float(total_spent),
-                            'avg_days_between_purchases': float(days_active / max(1, total_purchases - 1))
-                        })
-                except Exception as e:
-                    print(f"Error processing customer {customer_id}: {str(e)}")
-                    continue
-
-            # Calculate loyalty segments based on purchase recency and frequency
-            loyalty_segments = {
-                'new': 0,
-                'occasional': 0,
-                'regular': 0,
-                'loyal': 0
-            }
-
-            for customer in customer_loyalty:
-                try:
-                    days_active = customer.get('days_active', 0) or 0
-                    total_purchases = customer.get('total_purchases', 0) or 0
-
-                    if days_active < 30:
-                        loyalty_segments['new'] += 1
-                    elif total_purchases <= 3:
-                        loyalty_segments['occasional'] += 1
-                    elif total_purchases <= 10:
-                        loyalty_segments['regular'] += 1
-                    else:
-                        loyalty_segments['loyal'] += 1
-                except Exception as e:
-                    print(f"Error categorizing customer loyalty: {str(e)}")
-                    continue
-
-            # If we don't have any data in the loyalty segments, provide some sample data
-            if sum(loyalty_segments.values()) == 0:
-                print("No loyalty segment data available, using sample data")
-                loyalty_segments = {
-                    'new': 25,
-                    'occasional': 120,
-                    'regular': 80,
-                    'loyal': 35
+            if not orders_with_reviews:
+                print("No orders with review scores found, using sample data")
+                # Return sample sentiment data if no reviews found
+                return {
+                    'sentiment_distribution': {
+                        'Positive': 65,
+                        'Neutral': 25,
+                        'Negative': 10
+                    },
+                    'average_score': 3.8
                 }
 
+            # Extract review scores
+            reviews_df = pd.DataFrame([
+                {'review_score': order.review_score}
+                for order in orders_with_reviews
+                if order.review_score is not None
+            ])
+
+            if reviews_df.empty:
+                print("No valid review scores found, using sample data")
+                # Return sample sentiment data if no valid reviews found
+                return {
+                    'sentiment_distribution': {
+                        'Positive': 65,
+                        'Neutral': 25,
+                        'Negative': 10
+                    },
+                    'average_score': 3.8
+                }
+
+            # Apply sentiment classification based on review scores
+            # Positive: score >= 4, Negative: score <= 2, Neutral: everything else
+            reviews_df['Sentiment'] = reviews_df['review_score'].apply(
+                lambda x: 'Positive' if x >= 4 else 'Negative' if x <= 2 else 'Neutral'
+            )
+
+            # Count distribution
+            sentiment_counts = reviews_df['Sentiment'].value_counts().to_dict()
+
+            # Ensure all sentiment categories are present
+            for sentiment in ['Positive', 'Neutral', 'Negative']:
+                if sentiment not in sentiment_counts:
+                    sentiment_counts[sentiment] = 0
+
+            # Calculate average review score
+            avg_score = reviews_df['review_score'].mean()
+
             return {
-                'loyalty_segments': loyalty_segments,
-                # Return just 10 sample customer details
-                'customer_details': customer_loyalty[:10]
+                'sentiment_distribution': sentiment_counts,
+                'average_score': float(avg_score) if not pd.isna(avg_score) else 0.0
             }
+
         except Exception as e:
-            print(f"Error in analyze_customer_loyalty: {str(e)}")
-            # Return a default structure to prevent API errors
+            print(f"Error in analyze_sentiment: {str(e)}")
+            # Return default sentiment data in case of error
             return {
-                'loyalty_segments': {
-                    'new': 25,
-                    'occasional': 120,
-                    'regular': 80,
-                    'loyal': 35
+                'sentiment_distribution': {
+                    'Positive': 65,
+                    'Neutral': 25,
+                    'Negative': 10
                 },
-                'customer_details': []
+                'average_score': 3.8
             }
 
     def analyze_customer_segments(self):

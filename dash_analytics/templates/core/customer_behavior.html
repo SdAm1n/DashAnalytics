@@ -27,14 +27,14 @@ Analytics{% endblock %} {% block extra_head %}
             </div>
         </div>
 
-        <!-- Customer Loyalty Chart -->
+        <!-- Customer Sentiment Analysis Chart -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
             <h2
                 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
             >
-                Customer Loyalty
+                Customer Sentiment Analysis
             </h2>
-            <div class="h-80 w-full" id="customer-loyalty-chart">
+            <div class="h-80 w-full" id="customer-sentiment-chart">
                 <div class="flex items-center justify-center h-full">
                     <div
                         class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
@@ -180,7 +180,7 @@ Analytics{% endblock %} {% block extra_head %}
 
                 // Render all charts with the API data
                 renderPurchaseFrequencyChart(data.purchase_frequency);
-                renderCustomerLoyaltyChart(data.customer_loyalty);
+                renderCustomerSentimentChart(data.customer_sentiment);
                 renderCustomerSegmentationChart(data.customer_segments);
                 renderPurchaseTimeChart(data.purchase_times);
                 renderCustomerTable(data.top_customers);
@@ -321,74 +321,71 @@ Analytics{% endblock %} {% block extra_head %}
             });
         }
 
-        function renderCustomerLoyaltyChart(data) {
-            const container = document.getElementById("customer-loyalty-chart");
+        function renderCustomerSentimentChart(data) {
+            const container = document.getElementById(
+                "customer-sentiment-chart"
+            );
             container.innerHTML = "";
 
-            if (!data || !data.loyalty_segments) {
+            if (!data || !data.sentiment_distribution) {
                 container.innerHTML =
-                    '<div class="flex items-center justify-center h-full"><p class="text-gray-600 dark:text-gray-400">No loyalty data available</p></div>';
+                    '<div class="flex items-center justify-center h-full"><p class="text-gray-600 dark:text-gray-400">No sentiment data available</p></div>';
                 return;
             }
 
             // Create canvas for Chart.js
             const canvas = document.createElement("canvas");
-            canvas.id = "loyalty-chart";
+            canvas.id = "sentiment-chart";
             container.appendChild(canvas);
 
             const ctx = canvas.getContext("2d");
 
             // Extract data
-            const segments = data.loyalty_segments;
+            const sentiments = data.sentiment_distribution;
 
-            // Debug log to verify loyalty segments
-            console.log("Loyalty segments data:", segments);
+            // Debug log to verify sentiment data
+            console.log("Sentiment distribution data:", sentiments);
 
             // Check if we have any data (non-zero values)
-            const hasData = Object.values(segments).some((value) => value > 0);
+            const hasData = Object.values(sentiments).some(
+                (value) => value > 0
+            );
 
             if (!hasData) {
                 container.innerHTML =
-                    '<div class="flex items-center justify-center h-full"><p class="text-gray-600 dark:text-gray-400">No loyalty data available</p></div>';
+                    '<div class="flex items-center justify-center h-full"><p class="text-gray-600 dark:text-gray-400">No sentiment data available</p></div>';
                 return;
             }
 
-            // Define segment display names and colors
-            const segmentDefinitions = [
-                { key: "new", label: "New", color: "rgba(255, 99, 132, 0.7)" }, // red
-                {
-                    key: "occasional",
-                    label: "Occasional",
-                    color: "rgba(255, 205, 86, 0.7)",
-                }, // yellow
-                {
-                    key: "regular",
-                    label: "Regular",
-                    color: "rgba(54, 162, 235, 0.7)",
-                }, // blue
-                {
-                    key: "loyal",
-                    label: "Loyal",
-                    color: "rgba(75, 192, 192, 0.7)",
-                }, // green
+            // Define sentiment display names and colors
+            const sentimentDefinitions = [
+                { key: "Positive", color: "rgba(75, 192, 192, 0.7)" }, // green for positive
+                { key: "Neutral", color: "rgba(255, 205, 86, 0.7)" }, // yellow for neutral
+                { key: "Negative", color: "rgba(255, 99, 132, 0.7)" }, // red for negative
             ];
 
-            // Extract only segments that have values > 0
-            const filteredSegments = segmentDefinitions
-                .filter((segment) => segments[segment.key] > 0)
-                .map((segment) => ({
-                    key: segment.key,
-                    label: segment.label,
-                    value: segments[segment.key],
-                    color: segment.color,
+            // Extract only sentiments that have values > 0
+            const filteredSentiments = sentimentDefinitions
+                .filter((sentiment) => sentiments[sentiment.key] > 0)
+                .map((sentiment) => ({
+                    key: sentiment.key,
+                    label: sentiment.key,
+                    value: sentiments[sentiment.key],
+                    color: sentiment.color,
                 }));
 
-            const labels = filteredSegments.map((segment) => segment.label);
-            const values = filteredSegments.map((segment) => segment.value);
-            const colors = filteredSegments.map((segment) => segment.color);
+            const labels = filteredSentiments.map(
+                (sentiment) => sentiment.label
+            );
+            const values = filteredSentiments.map(
+                (sentiment) => sentiment.value
+            );
+            const colors = filteredSentiments.map(
+                (sentiment) => sentiment.color
+            );
 
-            // Debug log to verify filtered segments and capitalized labels
-            console.log("Filtered segments:", filteredSegments);
+            // Debug log to verify filtered sentiments
+            console.log("Filtered sentiments:", filteredSentiments);
             console.log("Chart labels:", labels);
 
             // Create chart
@@ -430,7 +427,9 @@ Analytics{% endblock %} {% block extra_head %}
                         },
                         title: {
                             display: true,
-                            text: "Customer Loyalty Segments",
+                            text: `Customer Sentiment Analysis (Avg Score: ${
+                                data.average_score?.toFixed(1) || "N/A"
+                            })`,
                         },
                     },
                 },
