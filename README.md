@@ -55,7 +55,7 @@ pip install -r dash_analytics/requirements.txt
 4. Setup MongoDB:
 
    a. **MongoDB Atlas** (Cloud):
-   - Create a free MongoDB Atlas account at https://www.mongodb.com/cloud/atlas
+   - Create a free MongoDB Atlas account at <https://www.mongodb.com/cloud/atlas>
    - Create a new cluster
    - In the "Network Access" tab, add your IP address
    - In the "Database Access" tab, create a new database user
@@ -67,15 +67,16 @@ pip install -r dash_analytics/requirements.txt
    ```
 
    b. **MongoDB Compass** (Local):
-   - Install MongoDB locally from https://www.mongodb.com/try/download/community
-   - Install MongoDB Compass from https://www.mongodb.com/try/download/compass
+   - Install MongoDB locally from <https://www.mongodb.com/try/download/community>
+   - Install MongoDB Compass from <https://www.mongodb.com/try/download/compass>
    - Open MongoDB Compass and connect to your local MongoDB instance
    - Add the connection string in URI in new connection
-    
+
 5. Run migrations:
 
 ```bash
 cd dash_analytics
+python manage.py makemigrations
 python manage.py migrate
 ```
 
