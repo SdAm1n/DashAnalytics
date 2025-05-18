@@ -63,7 +63,7 @@ def dashboard(request):
     initialize_data()  # Ensure we have initial data
 
     if not request.user.is_authenticated:
-        return redirect('login')
+        return redirect('signin')
 
     try:
         # Add your dashboard context data here

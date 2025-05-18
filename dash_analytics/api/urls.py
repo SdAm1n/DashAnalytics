@@ -4,6 +4,7 @@ from .views.customer_views import CustomerViewSet
 from .views.product_views import ProductViewSet
 from .views.order_views import OrderViewSet
 from analytics.api_views import SalesTrendView, CustomerBehaviorView, DemographicsView
+from analytics.prediction_views import PredictionView
 
 urlpatterns = [
     path('upload/', DataUploadView.as_view(), name='data-upload'),
@@ -19,4 +20,5 @@ urlpatterns = [
          CustomerBehaviorView.as_view(), name='customer-behavior-api'),
     path('analytics/demographics/',
          DemographicsView.as_view(), name='demographics-api'),
+    path('analytics/predictions/', PredictionView.as_view(), name='predictions-api'),
 ]

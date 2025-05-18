@@ -1,103 +1,227 @@
 {% extends 'base.html' %} {% block content %}
 <div class="container mx-auto py-8">
     <h1 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
-        Product Sales Prediction
+        Predictions
     </h1>
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
-        <form id="prediction-form" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label
-                        for="product"
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                        >Product</label
-                    >
-                    <input
-                        type="text"
-                        id="product"
-                        name="product"
-                        required
-                        class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
-                    />
-                </div>
-                <div>
-                    <label
-                        for="period"
-                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                        >Period</label
-                    >
-                    <select
-                        id="period"
-                        name="period"
-                        required
-                        class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full"
-                    >
-                        <option value="week">Next Week</option>
-                        <option value="month">Next Month</option>
-                        <option value="quarter">Next Quarter</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <button
-                    type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition"
-                >
-                    Predict
-                </button>
-            </div>
-        </form>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="flex justify-center items-center py-12">
+        <div
+            class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
+        ></div>
+        <span class="ml-3 text-gray-600 dark:text-gray-400"
+            >Loading predictions...</span
+        >
     </div>
+
+    <!-- Error Alert -->
     <div
-        id="prediction-result"
-        class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 hidden"
+        id="error-alert"
+        class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 hidden"
+        role="alert"
     >
-        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-            Prediction Result
+        <span id="error-message">Failed to load prediction data.</span>
+    </div>
+
+    <!-- Future Sales Trend Section -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
+        <h2
+            class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+        >
+            <span class="mr-2">📈</span> Future Sales Trend
         </h2>
-        <div id="result-content" class="text-gray-800 dark:text-gray-200"></div>
+        <div
+            id="future-sales"
+            class="text-gray-800 dark:text-gray-200 space-y-4"
+        >
+            <div
+                class="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 rounded"
+            ></div>
+            <div
+                class="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 rounded"
+            ></div>
+            <div
+                class="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 rounded"
+            ></div>
+        </div>
+    </div>
+
+    <!-- Future Top Product Section -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2
+            class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+        >
+            <span class="mr-2">🏆</span> Future Top Products
+        </h2>
+        <div
+            id="future-top-products"
+            class="text-gray-800 dark:text-gray-200 space-y-4"
+        >
+            <div
+                class="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 rounded"
+            ></div>
+            <div
+                class="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 rounded"
+            ></div>
+            <div
+                class="animate-pulse bg-gray-200 dark:bg-gray-700 h-12 rounded"
+            ></div>
+        </div>
     </div>
 </div>
-{% endblock %} {% block scripts %}
+{% endblock %} {% block extra_js %}
 <script>
-    document
-        .getElementById("prediction-form")
-        .addEventListener("submit", function (e) {
-            e.preventDefault();
-            const product = document.getElementById("product").value;
-            const period = document.getElementById("period").value;
-            const resultDiv = document.getElementById("prediction-result");
-            const resultContent = document.getElementById("result-content");
-            resultDiv.classList.add("hidden");
-            resultContent.innerHTML =
-                '<div class="flex items-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div><span class="ml-2">Predicting...</span></div>';
-            resultDiv.classList.remove("hidden");
-            fetch("/api/prediction/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken":
-                        (
-                            document.querySelector(
-                                "[name=csrfmiddlewaretoken]"
-                            ) || {}
-                        ).value || "",
-                },
-                body: JSON.stringify({ product, period }),
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (data && data.prediction) {
-                        resultContent.innerHTML = `<p class="text-lg">Predicted sales for <span class="font-semibold">${product}</span> in the next <span class="font-semibold">${period}</span>: <span class="text-blue-600 dark:text-blue-400 font-bold">${data.prediction}</span></p>`;
-                    } else {
-                        resultContent.innerHTML =
-                            '<p class="text-red-500">No prediction available.</p>';
-                    }
-                })
-                .catch(() => {
-                    resultContent.innerHTML =
-                        '<p class="text-red-500">Prediction failed. Please try again.</p>';
+    // Function to format dates nicely
+    function formatPeriod(period) {
+        if (period.includes("Q")) {
+            // Quarter format (e.g., 2025-Q2)
+            const [year, quarter] = period.split("-");
+            return `${quarter} ${year}`;
+        } else if (period.match(/^\d{4}-\d{2}$/)) {
+            // Month format (e.g., 2025-05)
+            const date = new Date(period + "-01");
+            return date.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+            });
+        } else {
+            // Return as is for other formats
+            return period;
+        }
+    }
+
+    // Function to create a prediction card
+    function createPredictionCard(prediction) {
+        const card = document.createElement("div");
+        card.className = "bg-gray-100 dark:bg-gray-700 p-4 rounded-lg";
+
+        let formattedDetails = "";
+
+        if (prediction.details) {
+            if (
+                typeof prediction.details === "object" &&
+                prediction.details !== null
+            ) {
+                Object.entries(prediction.details).forEach(([key, value]) => {
+                    formattedDetails += `<div class="text-sm"><span class="font-medium">${key}:</span> ${value}</div>`;
                 });
+            } else if (typeof prediction.details === "string") {
+                formattedDetails = `<div class="text-sm">${prediction.details}</div>`;
+            }
+        }
+
+        card.innerHTML = `
+            <div class="font-semibold text-gray-800 dark:text-gray-200">${formatPeriod(
+                prediction.prediction_period
+            )}</div>
+            <div class="text-lg font-bold text-blue-600 dark:text-blue-400 my-1">${
+                prediction.predicted_value
+            }</div>
+            ${formattedDetails}
+        `;
+
+        return card;
+    }
+
+    // Function to populate prediction containers
+    function populatePredictions(predictions, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = ""; // Clear loading placeholders
+
+        if (predictions && predictions.length > 0) {
+            predictions.forEach((prediction) => {
+                const card = createPredictionCard(prediction);
+                container.appendChild(card);
+            });
+        } else {
+            container.innerHTML =
+                '<div class="text-gray-500 dark:text-gray-400">No predictions available</div>';
+        }
+    }
+
+    // Function to combine and deduplicate predictions from both databases
+    function combineAndDeduplicatePredictions(
+        lowReviewPredictions,
+        highReviewPredictions
+    ) {
+        // Start with all low review predictions
+        const combined = [...(lowReviewPredictions || [])];
+
+        // Only add high review predictions if they have a different period
+        if (highReviewPredictions && highReviewPredictions.length > 0) {
+            highReviewPredictions.forEach((highPrediction) => {
+                const isDuplicate = combined.some(
+                    (existingPrediction) =>
+                        existingPrediction.prediction_period ===
+                        highPrediction.prediction_period
+                );
+
+                if (!isDuplicate) {
+                    combined.push(highPrediction);
+                }
+            });
+        }
+
+        // Sort by prediction period (most recent first)
+        return combined.sort((a, b) => {
+            // Compare prediction periods (assuming format like "2025-Q1" or "2025-05")
+            return b.prediction_period.localeCompare(a.prediction_period);
         });
+    }
+
+    // Fetch prediction data
+    function fetchPredictions() {
+        document.getElementById("loading").classList.remove("hidden");
+        document.getElementById("error-alert").classList.add("hidden");
+
+        fetch("/api/analytics/predictions/")
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then((data) => {
+                // Combine predictions from both databases
+                const combinedSalesTrend = combineAndDeduplicatePredictions(
+                    data.low_review_score_db.future_sales_trend,
+                    data.high_review_score_db.future_sales_trend
+                );
+
+                const combinedTopProducts = combineAndDeduplicatePredictions(
+                    data.low_review_score_db.future_top_product,
+                    data.high_review_score_db.future_top_product
+                );
+
+                // Populate the containers with combined data
+                populatePredictions(combinedSalesTrend, "future-sales");
+                populatePredictions(combinedTopProducts, "future-top-products");
+
+                // Hide loading indicator
+                document.getElementById("loading").classList.add("hidden");
+            })
+            .catch((error) => {
+                console.error("Error fetching prediction data:", error);
+                document.getElementById("loading").classList.add("hidden");
+                document
+                    .getElementById("error-alert")
+                    .classList.remove("hidden");
+                document.getElementById(
+                    "error-message"
+                ).textContent = `Error loading prediction data: ${error.message}`;
+
+                // Display fallback message in each container
+                const containers = ["future-sales", "future-top-products"];
+                containers.forEach((id) => {
+                    document.getElementById(id).innerHTML =
+                        '<div class="text-gray-500 dark:text-gray-400">Failed to load prediction data.</div>';
+                });
+            });
+    }
+
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", function () {
+        fetchPredictions();
+    });
 </script>
 {% endblock %}
