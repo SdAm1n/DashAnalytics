@@ -5,6 +5,7 @@ from .views.product_views import ProductViewSet
 from .views.order_views import OrderViewSet
 from analytics.api_views import SalesTrendView, CustomerBehaviorView, DemographicsView
 from analytics.prediction_views import PredictionView
+from analytics.geographical_views import GeographicalView
 
 urlpatterns = [
     path('upload/', DataUploadView.as_view(), name='data-upload'),
@@ -21,4 +22,6 @@ urlpatterns = [
     path('analytics/demographics/',
          DemographicsView.as_view(), name='demographics-api'),
     path('analytics/predictions/', PredictionView.as_view(), name='predictions-api'),
+    path('analytics/geographical/',
+         GeographicalView.as_view(), name='geographical-api'),
 ]

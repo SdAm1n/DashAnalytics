@@ -1,0 +1,313 @@
+--- geographical_insights.html	2025-05-18 06:31:52.123456789 +0000
++++ geographical_insights_fixed.html	2025-05-18 06:31:52.123456789 +0000
+@@ -242,12 +242,10 @@
+         showLoading();
+         
+         // Get filter values
+         const periodValue = document.getElementById("period-select").value;
+         const regionValue = document.getElementById("region-select").value;
+         
+-        
++        console.log(`Fetching geographical data - Period: ${periodValue}, Region: ${regionValue}`);
+         // Construct API URL with query parameters
+         const apiUrl = `/api/analytics/geographical/?period=${periodValue}&region=${regionValue}`;
+         
+         fetch(apiUrl)
+             .then(response => {
+@@ -256,14 +254,30 @@
+                 return response.json();
+             })
+             .then(data => {
+-                renderCityCustomersCharts(data.cityCustomers);
+-                renderCityProfitCharts(data.cityProfit);
+-                renderWorldMap(data.mapData);
+-                renderRegionsTable(data.regions);
++                console.log("Received geographical data:", data);
++                
++                // Validate data structure before rendering
++                if (!data) {
++                    console.error("No data received from API");
++                    throw new Error("No data received from API");
++                }
++                
++                // Render components with appropriate validation inside each function
++                if (data.cityCustomers) {
++                    renderCityCustomersCharts(data.cityCustomers);
++                } else {
++                    console.warn("No city customer data available");
++                }
++                
++                if (data.cityProfit) {
++                    renderCityProfitCharts(data.cityProfit);
++                } else {
++                    console.warn("No city profit data available");
++                }
++                
++                if (data.mapData) {
++                    renderWorldMap(data.mapData);
++                } else {
++                    console.warn("No map data available");
++                }
++                
++                if (data.regions) {
++                    renderRegionsTable(data.regions);
++                } else {
++                    console.warn("No regions data available");
++                }
++                
+                 hideLoading();
+             })
+             .catch(error => {
+                 console.error("Error loading geographical data:", error);
+                 hideLoading();
+-                alert("Failed to load geographical insights. Please try again.");
++                
++                // Show error message on the page instead of an alert
++                const chartContainers = document.querySelectorAll(".h-64, .h-80, .h-96");
++                chartContainers.forEach(container => {
++                    container.innerHTML = `
++                        <div class="flex items-center justify-center h-full">
++                            <p class="text-red-500 dark:text-red-400">
++                                Failed to load data. Please try again.
++                            </p>
++                        </div>
++                    `;
++                });
+             });
+     }
+ 
+@@ -393,8 +407,6 @@
+ 
+     function renderCityProfitCharts(data) {
+         // Log data to check what we're receiving
+         console.log("Profit/Loss data:", data);
+         
+         const chartOptions = {
+             responsive: true,
+@@ -427,14 +439,21 @@
+             }
+         };
+ 
+-        // Make sure we have data before rendering
+-        if (data.profit && data.profit.labels && data.profit.labels.length > 0) {
+-            // Top Cities by Profit Chart
+-            const profitCtx = document.getElementById('topProfitChart').getContext('2d');
+-            if (topProfitChart) topProfitChart.destroy();
+-            topProfitChart = new Chart(profitCtx, {
+-                type: 'bar',
+-                data: {
++        try {
++            // Make sure we have data before rendering
++            if (data.profit && data.profit.labels && data.profit.labels.length > 0) {
++                // Top Cities by Profit Chart
++                const profitCtx = document.getElementById('topProfitChart').getContext('2d');
++                if (topProfitChart) topProfitChart.destroy();
++                topProfitChart = new Chart(profitCtx, {
++                    type: 'bar',
++                    data: {
++                        labels: data.profit.labels,
++                        datasets: [{
++                            label: 'Total Profit',
++                            data: data.profit.data.map(val => Math.abs(val)), // Convert all values to positive
++                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
++                            borderColor: '#10b981',
++                            borderWidth: 1
++                        }]
++                    },
++                    options: chartOptions
++                });
++            } else {
++                console.warn("No profit data available for chart");
++                document.getElementById('topProfitChart').getContext('2d').canvas.parentNode.innerHTML = 
++                    '<div class="flex items-center justify-center h-full text-gray-500">No profit data available</div>';
++            }
++
++            // Make sure we have data before rendering
++            if (data.loss && data.loss.labels && data.loss.labels.length > 0) {
++                // Cities by Loss Chart
++                const lossCtx = document.getElementById('topLossChart').getContext('2d');
++                if (topLossChart) topLossChart.destroy();
++                topLossChart = new Chart(lossCtx, {
++                    type: 'bar',
++                    data: {
++                        labels: data.loss.labels,
++                        datasets: [{
++                            label: 'Total Loss',
++                            data: data.loss.data.map(val => Math.abs(val)), // Convert to positive values for visualization
++                            backgroundColor: 'rgba(239, 68, 68, 0.6)',
++                            borderColor: '#ef4444',
++                            borderWidth: 1
++                        }]
++                    },
++                    options: chartOptions
++                });
++            } else {
++                console.warn("No loss data available for chart");
++                document.getElementById('topLossChart').getContext('2d').canvas.parentNode.innerHTML = 
++                    '<div class="flex items-center justify-center h-full text-gray-500">No loss data available</div>';
++            }
++        } catch (error) {
++            console.error("Error rendering profit/loss charts:", error);
++        }
++    }
++
++    // Map coordinates for some main cities (for future use if needed)
++    const cityCoordinates = {
++        "New York": [40.7128, -74.0060],
++        "London": [51.5074, -0.1278],
++        "Tokyo": [35.6762, 139.6503],
++        "Shanghai": [31.2304, 121.4737],
++        "Los Angeles": [34.0522, -118.2437],
++        "Paris": [48.8566, 2.3522],
++        "Berlin": [52.5200, 13.4050],
++        "Toronto": [43.6511, -79.3470],
++        "Sydney": [-33.8688, 151.2093],
++        "Mumbai": [19.0760, 72.8777]
++    };
++
++    // Rendering functions
++    function renderWorldMap(data) {
++        // Clear previous map if it exists
++        const mapContainer = document.getElementById("world-map");
++        mapContainer.innerHTML = "";
++
++        const isDarkMode = document.documentElement.classList.contains("dark");
++        const backgroundColor = isDarkMode ? "#1f2937" : "#ffffff";
++        const regionColor = isDarkMode ? "#374151" : "#e5e7eb";
++        const selectedRegionColor = "#3b82f6";
++        const textColor = isDarkMode ? "#e5e7eb" : "#374151";
++
++        // Log data for debugging
++        console.log("Map data:", data);
++        
++        if (!data || Object.keys(data).length === 0) {
++            console.log("No map data available to display");
++            const errorMessage = document.createElement("div");
++            errorMessage.className = "flex items-center justify-center h-full";
++            errorMessage.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No geographical data available to display</p>';
++            mapContainer.appendChild(errorMessage);
++            return;
++        }
++
++        // Calculate max value for consistent scaling
++        const maxValue = Math.max(1, ...Object.values(data)); // Ensure we don't divide by zero
++
++        // Transform data for jsvectormap
++        const mapValues = {};
++        Object.keys(data).forEach((country) => {
++            // Ensure the value is scaled properly between 0-100
++            mapValues[country] = (data[country] / maxValue) * 100;
++        });
++
++        // Add city markers with coordinates
++        const markers = [];
++        Object.entries(cityCoordinates).forEach(([city, coordinates]) => {
++            // Add markers for cities that are in our data
++            markers.push({
++                name: city,
++                coords: coordinates,
++                style: {
++                    fill: '#ff9e00'
++                }
++            });
++        });
++
++        // Create new map
++        worldMap = new jsVectorMap({
++            selector: "#world-map",
++            map: "world",
++            backgroundColor: backgroundColor,
++            regionStyle: {
++                initial: {
++                    fill: regionColor,
++                    stroke: isDarkMode ? "#4b5563" : "#d1d5db",
++                    "stroke-width": 0.5,
++                },
++                hover: {
++                    fill: "#60a5fa",
++                },
++                selected: {
++                    fill: selectedRegionColor,
++                },
++            },
++            markers: markers,
++            markerStyle: {
++                initial: {
++                    r: 5,
++                    fill: '#ff5c00',
++                    stroke: '#fff',
++                    "stroke-width": 2,
++                    "stroke-opacity": 0.6
++                },
++                hover: {
++                    r: 7,
++                    stroke: '#fff',
++                    "stroke-width": 3
++                }
++            },
++            labels: {
++                markers: {
++                    render: (marker) => marker.name,
++                    offsets: (index) => [0, 0],
++                },
++            },
++            series: {
++                regions: [
++                    {
++                        values: mapValues,
++                        scale: ["#c6e0ff", "#0059ff"],
++                        normalizeFunction: "linear",
++                    },
++                ],
++            },
++            onRegionTipShow: function (event, tooltip, code) {
++                if (data[code]) {
++                    tooltip.innerHTML = `${tooltip.innerHTML}: $${data[
++                        code
++                    ].toLocaleString()}`;
++                } else {
++                    tooltip.innerHTML = `${tooltip.innerHTML}: No data available`;
++                }
++            },
++        });
++    }
++
++@@ -737,14 +765,25 @@
++
++    function renderRegionsTable(data) {
++        const tableBody = document.getElementById("regions-table");
++        tableBody.innerHTML = ""; // Clear all existing rows
++
++        // Make sure we have data
++        if (!data || data.length === 0) {
++            console.log("No region data available to display");
++            const emptyRow = document.createElement("tr");
++            emptyRow.innerHTML = `
++                <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">No data available</td>
++            `;
++            tableBody.appendChild(emptyRow);
++            return;
++        }
++
++        console.log("Regions data:", data);
++        
++        // Add data rows
++        data.forEach((region) => {
++            const row = document.createElement("tr");
++            row.classList.add("hover:bg-gray-100", "dark:hover:bg-gray-700");
++
++            const growthClass = region.growth && region.growth.includes("+")
++                ? "text-green-500"
++                : "text-red-500";
++
++            row.innerHTML = `
++                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">${region.region || 'Unknown'}</td>
++                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${region.currentSales || '$0.00'}</td>
++                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${region.previousSales || '$0.00'}</td>
++                <td class="px-6 py-4 whitespace-nowrap text-sm ${growthClass}">${region.growth || '0.0%'}</td>
++                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${region.marketShare || '0.0%'}</td>
++            `;
++
++            tableBody.appendChild(row);
++        });
++    }

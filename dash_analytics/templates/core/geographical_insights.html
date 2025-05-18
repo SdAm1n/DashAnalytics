@@ -70,8 +70,51 @@ DashAnalytics{% endblock %} {% block content %}
     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
         Sales Distribution by City
     </h3>
-    <div class="h-96">
+    <div class="h-96 relative">
         <div id="world-map" class="w-full h-full"></div>
+        <style>
+            /* Fix for zoom controls alignment */
+            .jvm-zoom-btn {
+                position: absolute;
+                left: auto !important;
+                right: 10px !important;
+                top: auto !important;
+                bottom: 10px !important;
+                width: 24px !important;
+                height: 24px !important;
+                display: flex !important;
+                justify-content: center;
+                align-items: center;
+                font-size: 16px !important;
+                border: 1px solid #ccc !important;
+                color: #333 !important;
+                background-color: white !important;
+                border-radius: 4px !important;
+            }
+            .jvm-zoom-btn.jvm-zoomin {
+                bottom: 40px !important;
+            }
+            .dark .jvm-zoom-btn {
+                background-color: #374151 !important;
+                color: #e5e7eb !important;
+                border-color: #4b5563 !important;
+            }
+        </style>
+    </div>
+    <div class="mt-3 text-sm text-gray-600 dark:text-gray-400 flex flex-col">
+        <div class="flex items-center mb-2">
+            <span
+                class="inline-block w-5 h-5 rounded-full bg-blue-500 mr-2 shadow-sm border-2 border-white dark:border-gray-800"
+            ></span>
+            <span class="font-medium">Top 5 cities by customer count</span>
+            <span class="text-xs ml-2 italic">(always visible, labeled)</span>
+        </div>
+        <div class="flex items-center">
+            <span
+                class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2 opacity-70"
+            ></span>
+            <span>Other cities with data</span>
+        </div>
     </div>
 </div>
 
@@ -115,84 +158,6 @@ DashAnalytics{% endblock %} {% block content %}
         <div class="h-80">
             <canvas id="topLossChart"></canvas>
         </div>
-    </div>
-</div>
-
-<!-- Regional Performance -->
-<div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
-    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        Sales Growth by Region
-    </h3>
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-100 dark:bg-gray-700">
-                <tr>
-                    <th
-                        scope="col"
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                        Region
-                    </th>
-                    <th
-                        scope="col"
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                        Current Period Sales
-                    </th>
-                    <th
-                        scope="col"
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                        Previous Period Sales
-                    </th>
-                    <th
-                        scope="col"
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                        Growth
-                    </th>
-                    <th
-                        scope="col"
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                    >
-                        Market Share
-                    </th>
-                </tr>
-            </thead>
-            <tbody
-                id="regions-table"
-                class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-            >
-                <!-- Table rows will be populated dynamically -->
-                <tr class="animate-pulse">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div
-                            class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"
-                        ></div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div
-                            class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/2"
-                        ></div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div
-                            class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/2"
-                        ></div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div
-                            class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4"
-                        ></div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div
-                            class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4"
-                        ></div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
     </div>
 </div>
 
@@ -245,11 +210,6 @@ DashAnalytics{% endblock %} {% block content %}
                 container.appendChild(overlay);
             }
         });
-
-        // Show table loading state
-        document.querySelectorAll(".animate-pulse").forEach((row) => {
-            row.style.display = "table-row";
-        });
     }
 
     function hideLoading() {
@@ -257,30 +217,126 @@ DashAnalytics{% endblock %} {% block content %}
         document.querySelectorAll(".loading-overlay").forEach((overlay) => {
             overlay.remove();
         });
-
-        // Hide table loading state
-        document.querySelectorAll(".animate-pulse").forEach((row) => {
-            row.style.display = "none";
-        });
     }
 
     function fetchGeographicalData() {
         showLoading();
-        fetch('/api/geographical-insights/')
-            .then(response => response.json())
-            .then(data => {
+
+        // Get filter values
+        const periodValue = document.getElementById("period-select").value;
+        const regionValue = document.getElementById("region-select").value;
+
+        console.log(
+            `Fetching geographical data - Period: ${periodValue}, Region: ${regionValue}`
+        );
+
+        // Construct API URL with query parameters
+        const apiUrl = `/api/analytics/geographical/?period=${periodValue}&region=${regionValue}`;
+
+        fetch(apiUrl)
+            .then((response) => {
+                console.log("API Response status:", response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .catch((error) => {
+                console.error("Error parsing API response JSON:", error);
+                throw new Error("Failed to parse API response as JSON");
+            })
+            .then((data) => {
+                console.log("Received geographical data:", data);
+
+                // Validate data structure before rendering
+                if (!data) {
+                    console.error("No data received from API");
+                    throw new Error("No data received from API");
+                }
+
+                // Create empty structures for missing data components
+                // This ensures that our rendering functions don't fail when data is missing
+                if (!data.cityCustomers) {
+                    console.warn(
+                        "No city customer data received, creating empty structure"
+                    );
+                    data.cityCustomers = {
+                        top: { labels: [], data: [] },
+                        bottom: { labels: [], data: [] },
+                    };
+                }
+
+                if (!data.cityProfit) {
+                    console.warn(
+                        "No city profit data received, creating empty structure"
+                    );
+                    data.cityProfit = {
+                        profit: { labels: [], data: [] },
+                        loss: { labels: [], data: [] },
+                    };
+                }
+
+                if (!data.mapData) {
+                    console.warn(
+                        "No map data received, creating empty structure"
+                    );
+                    data.mapData = {};
+                }
+
+                // Render components with the validated data
                 renderCityCustomersCharts(data.cityCustomers);
                 renderCityProfitCharts(data.cityProfit);
+
+                // Extract just the map data for the map rendering function
+                const mapData = {
+                    cityCustomers: data.cityCustomers,
+                    cityProfit: data.cityProfit,
+                    mapData: data.mapData,
+                };
+                console.log("Calling renderWorldMap with map data:", mapData);
+                renderWorldMap(mapData);
+
                 hideLoading();
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error("Error loading geographical data:", error);
                 hideLoading();
-                alert("Failed to load geographical insights. Please try again.");
+
+                // Show detailed error message on the page instead of a generic one
+                const chartContainers = document.querySelectorAll(
+                    ".h-64, .h-80, .h-96"
+                );
+                chartContainers.forEach((container) => {
+                    container.innerHTML = `
+                        <div class="flex items-center justify-center h-full">
+                            <div class="text-center">
+                                <p class="text-red-500 dark:text-red-400 mb-2">
+                                    Failed to load geographical data
+                                </p>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">
+                                    ${
+                                        error.message ||
+                                        "Please try again or contact support if the problem persists"
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                });
             });
     }
 
     function renderCityCustomersCharts(data) {
+        // Validate input data
+        if (!data || !data.top || !data.bottom) {
+            console.error(
+                "Invalid data structure for city customer charts:",
+                data
+            );
+            return;
+        }
+
+        console.log("Rendering city customers charts with data:", data);
         const chartOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -289,50 +345,61 @@ DashAnalytics{% endblock %} {% block content %}
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Number of Customers'
-                    }
-                }
-            }
+                        text: "Number of Customers",
+                    },
+                },
+            },
         };
 
         // Top Cities Chart
-        const topCtx = document.getElementById('topCustomersChart').getContext('2d');
+        const topCtx = document
+            .getElementById("topCustomersChart")
+            .getContext("2d");
         if (topCustomersChart) topCustomersChart.destroy();
         topCustomersChart = new Chart(topCtx, {
-            type: 'bar',
+            type: "bar",
             data: {
                 labels: data.top.labels,
-                datasets: [{
-                    label: 'Top Cities by Customer Count',
-                    data: data.top.data,
-                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                    borderColor: '#3b82f6',
-                    borderWidth: 1
-                }]
+                datasets: [
+                    {
+                        label: "Top Cities by Customer Count",
+                        data: data.top.data,
+                        backgroundColor: "rgba(59, 130, 246, 0.6)",
+                        borderColor: "#3b82f6",
+                        borderWidth: 1,
+                    },
+                ],
             },
-            options: chartOptions
+            options: chartOptions,
         });
 
         // Bottom Cities Chart
-        const bottomCtx = document.getElementById('bottomCustomersChart').getContext('2d');
+        const bottomCtx = document
+            .getElementById("bottomCustomersChart")
+            .getContext("2d");
         if (bottomCustomersChart) bottomCustomersChart.destroy();
         bottomCustomersChart = new Chart(bottomCtx, {
-            type: 'bar',
+            type: "bar",
             data: {
                 labels: data.bottom.labels,
-                datasets: [{
-                    label: 'Bottom Cities by Customer Count',
-                    data: data.bottom.data,
-                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
-                    borderColor: '#ef4444',
-                    borderWidth: 1
-                }]
+                datasets: [
+                    {
+                        label: "Bottom Cities by Customer Count",
+                        data: data.bottom.data,
+                        backgroundColor: "rgba(239, 68, 68, 0.6)",
+                        borderColor: "#ef4444",
+                        borderWidth: 1,
+                    },
+                ],
             },
-            options: chartOptions
+            options: chartOptions,
         });
     }
 
     function renderCityProfitCharts(data) {
+        // Log data to check what we're receiving
+        console.log("Profit/Loss data:", data);
+
         const chartOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -341,161 +408,265 @@ DashAnalytics{% endblock %} {% block content %}
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Amount ($)'
+                        text: "Amount ($)",
                     },
                     ticks: {
-                        callback: value => '$' + Math.abs(value).toLocaleString()
-                    }
+                        callback: function (value) {
+                            return "$" + Math.abs(value).toLocaleString();
+                        },
+                    },
+                },
+                x: {
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 45,
+                        minRotation: 45,
+                    },
+                },
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return (
+                                "$" +
+                                Math.abs(context.parsed.y).toLocaleString()
+                            );
+                        },
+                    },
+                },
+            },
+        };
+
+        try {
+            // Validate we have a proper data structure
+            if (!data || typeof data !== "object") {
+                throw new Error(
+                    "Invalid data structure for profit/loss charts"
+                );
+            }
+
+            // Handle profit chart
+            const profitContainer = document.getElementById("topProfitChart");
+            if (profitContainer) {
+                const profitCtx = profitContainer.getContext("2d");
+
+                // Make sure we have valid data before rendering
+                if (
+                    data.profit &&
+                    Array.isArray(data.profit.labels) &&
+                    Array.isArray(data.profit.data) &&
+                    data.profit.labels.length > 0 &&
+                    data.profit.data.length > 0
+                ) {
+                    // Check for any null or undefined values in data
+                    const validProfitData = data.profit.data.map((val) => {
+                        if (
+                            val === null ||
+                            val === undefined ||
+                            isNaN(parseFloat(val))
+                        ) {
+                            return 0;
+                        }
+                        return Math.abs(parseFloat(val));
+                    });
+
+                    // Destroy existing chart if it exists
+                    if (topProfitChart) topProfitChart.destroy();
+
+                    // Create new chart
+                    topProfitChart = new Chart(profitCtx, {
+                        type: "bar",
+                        data: {
+                            labels: data.profit.labels,
+                            datasets: [
+                                {
+                                    label: "Total Profit",
+                                    data: validProfitData,
+                                    backgroundColor: "rgba(16, 185, 129, 0.6)",
+                                    borderColor: "#10b981",
+                                    borderWidth: 1,
+                                },
+                            ],
+                        },
+                        options: chartOptions,
+                    });
+                } else {
+                    console.warn("No profit data available for chart");
+                    profitContainer.parentNode.innerHTML =
+                        '<div class="flex items-center justify-center h-full text-gray-500">No profit data available</div>';
                 }
             }
-        };
 
-        // Top Cities by Profit Chart
-        const profitCtx = document.getElementById('topProfitChart').getContext('2d');
-        if (topProfitChart) topProfitChart.destroy();
-        topProfitChart = new Chart(profitCtx, {
-            type: 'bar',
-            data: {
-                labels: data.profit.labels,
-                datasets: [{
-                    label: 'Total Profit',
-                    data: data.profit.data,
-                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                    borderColor: '#10b981',
-                    borderWidth: 1
-                }]
-            },
-            options: chartOptions
-        });
+            // Handle loss chart
+            const lossContainer = document.getElementById("topLossChart");
+            if (lossContainer) {
+                const lossCtx = lossContainer.getContext("2d");
 
-        // Cities by Loss Chart
-        const lossCtx = document.getElementById('topLossChart').getContext('2d');
-        if (topLossChart) topLossChart.destroy();
-        topLossChart = new Chart(lossCtx, {
-            type: 'bar',
-            data: {
-                labels: data.loss.labels,
-                datasets: [{
-                    label: 'Total Loss',
-                    data: data.loss.data,
-                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
-                    borderColor: '#ef4444',
-                    borderWidth: 1
-                }]
-            },
-            options: chartOptions
-        });
+                // Make sure we have valid data before rendering
+                if (
+                    data.loss &&
+                    Array.isArray(data.loss.labels) &&
+                    Array.isArray(data.loss.data) &&
+                    data.loss.labels.length > 0 &&
+                    data.loss.data.length > 0
+                ) {
+                    // Check for any null or undefined values in data
+                    const validLossData = data.loss.data.map((val) => {
+                        if (
+                            val === null ||
+                            val === undefined ||
+                            isNaN(parseFloat(val))
+                        ) {
+                            return 0;
+                        }
+                        return Math.abs(parseFloat(val));
+                    });
+
+                    // Destroy existing chart if it exists
+                    if (topLossChart) topLossChart.destroy();
+
+                    // Create new chart
+                    topLossChart = new Chart(lossCtx, {
+                        type: "bar",
+                        data: {
+                            labels: data.loss.labels,
+                            datasets: [
+                                {
+                                    label: "Total Loss",
+                                    data: validLossData,
+                                    backgroundColor: "rgba(239, 68, 68, 0.6)",
+                                    borderColor: "#ef4444",
+                                    borderWidth: 1,
+                                },
+                            ],
+                        },
+                        options: chartOptions,
+                    });
+                } else {
+                    console.warn("No loss data available for chart");
+                    lossContainer.parentNode.innerHTML =
+                        '<div class="flex items-center justify-center h-full text-gray-500">No loss data available</div>';
+                }
+            }
+        } catch (error) {
+            console.error("Error rendering profit/loss charts:", error);
+
+            // Provide fallback displays for both charts on error
+            const charts = ["topProfitChart", "topLossChart"];
+            charts.forEach((chartId) => {
+                const container = document.getElementById(chartId);
+                if (container) {
+                    container.parentNode.innerHTML =
+                        '<div class="flex items-center justify-center h-full text-red-500">Error loading chart data</div>';
+                }
+            });
+        }
     }
 
-    // Data generator functions
-    function generateMapData() {
-        return {
-            US: 8500,
-            CA: 2200,
-            GB: 3700,
-            DE: 2800,
-            FR: 2100,
-            ES: 1800,
-            IT: 1600,
-            CN: 4200,
-            JP: 3100,
-            IN: 2600,
-            BR: 1900,
-            AU: 1500,
-            ZA: 900,
-            RU: 1200,
-            MX: 1100,
-        };
-    }
+    // Map coordinates for cities in our database
+    const cityCoordinates = {
+        // North America
+        "New York": [40.7128, -74.006],
+        "Los Angeles": [34.0522, -118.2437],
+        Chicago: [41.8781, -87.6298],
+        Houston: [29.7604, -95.3698],
+        Phoenix: [33.4484, -112.074],
+        Philadelphia: [39.9526, -75.1652],
+        "San Antonio": [29.4241, -98.4936],
+        "San Diego": [32.7157, -117.1611],
+        Dallas: [32.7767, -96.797],
+        "San Jose": [37.3382, -121.8863],
+        Toronto: [43.6511, -79.347],
+        Montreal: [45.5017, -73.5673],
+        Vancouver: [49.2827, -123.1207],
+        Calgary: [51.0447, -114.0719],
+        Edmonton: [53.5461, -113.4938],
+        "Mexico City": [19.4326, -99.1332],
+        Guadalajara: [20.6597, -103.3496],
+        Monterrey: [25.6866, -100.3161],
+        Puebla: [19.0413, -98.2062],
+        Tijuana: [32.5149, -117.0382],
 
-    function generateCountriesData() {
-        return {
-            labels: [
-                "United States",
-                "China",
-                "United Kingdom",
-                "Germany",
-                "Japan",
-                "India",
-                "Canada",
-                "France",
-                "Brazil",
-                "Australia",
-            ],
-            data: [8500, 4200, 3700, 2800, 3100, 2600, 2200, 2100, 1900, 1500],
-        };
-    }
+        // Europe
+        London: [51.5074, -0.1278],
+        Birmingham: [52.4862, -1.8904],
+        Manchester: [53.4808, -2.2426],
+        Liverpool: [53.4084, -2.9916],
+        Glasgow: [55.8642, -4.2518],
+        Paris: [48.8566, 2.3522],
+        Marseille: [43.2965, 5.3698],
+        Lyon: [45.764, 4.8357],
+        Toulouse: [43.6047, 1.4442],
+        Nice: [43.7102, 7.262],
+        Berlin: [52.52, 13.405],
+        Hamburg: [53.5511, 9.9937],
+        Munich: [48.1351, 11.582],
+        Cologne: [50.9375, 6.9603],
+        Frankfurt: [50.1109, 8.6821],
+        Amsterdam: [52.3676, 4.9041],
+        Rotterdam: [51.9244, 4.4777],
+        "The Hague": [52.0705, 4.3007],
+        Utrecht: [52.0907, 5.1214],
+        Eindhoven: [51.4416, 5.4697],
 
-    function generateCitiesData() {
-        return {
-            labels: [
-                "New York",
-                "London",
-                "Tokyo",
-                "Shanghai",
-                "Los Angeles",
-                "Paris",
-                "Berlin",
-                "Toronto",
-                "Sydney",
-                "Mumbai",
-            ],
-            data: [1200, 950, 850, 780, 720, 680, 590, 540, 510, 490],
-        };
-    }
+        // Asia
+        Tokyo: [35.6762, 139.6503],
+        Osaka: [34.6937, 135.5023],
+        Yokohama: [35.4437, 139.638],
+        Nagoya: [35.1815, 136.9066],
+        Sapporo: [43.0618, 141.3545],
+        Beijing: [39.9042, 116.4074],
+        Shanghai: [31.2304, 121.4737],
+        Guangzhou: [23.1291, 113.2644],
+        Shenzhen: [22.5431, 114.0579],
+        Chongqing: [29.4316, 106.9123],
+        Mumbai: [19.076, 72.8777],
+        Delhi: [28.7041, 77.1025],
+        Bangalore: [12.9716, 77.5946],
+        Hyderabad: [17.385, 78.4867],
+        Chennai: [13.0827, 80.2707],
 
-    function generateRegionsData() {
-        return [
-            {
-                region: "North America",
-                currentSales: "$12,450,000",
-                previousSales: "$10,890,000",
-                growth: "+14.3%",
-                marketShare: "35.6%",
-            },
-            {
-                region: "Europe",
-                currentSales: "$9,870,000",
-                previousSales: "$9,120,000",
-                growth: "+8.2%",
-                marketShare: "28.2%",
-            },
-            {
-                region: "Asia",
-                currentSales: "$8,650,000",
-                previousSales: "$7,340,000",
-                growth: "+17.8%",
-                marketShare: "24.7%",
-            },
-            {
-                region: "South America",
-                currentSales: "$1,950,000",
-                previousSales: "$1,780,000",
-                growth: "+9.5%",
-                marketShare: "5.6%",
-            },
-            {
-                region: "Oceania",
-                currentSales: "$1,450,000",
-                previousSales: "$1,380,000",
-                growth: "+5.1%",
-                marketShare: "4.1%",
-            },
-            {
-                region: "Africa",
-                currentSales: "$630,000",
-                previousSales: "$520,000",
-                growth: "+21.2%",
-                marketShare: "1.8%",
-            },
-        ];
-    }
+        // Australia/Oceania
+        Sydney: [-33.8688, 151.2093],
+        Melbourne: [-37.8136, 144.9631],
+        Brisbane: [-27.4705, 153.026],
+        Perth: [-31.9505, 115.8605],
+        Adelaide: [-34.9285, 138.6007],
+
+        // South America
+        "São Paulo": [-23.5505, -46.6333],
+        "Rio de Janeiro": [-22.9068, -43.1729],
+        Brasília: [-15.7801, -47.9292],
+        Salvador: [-12.9714, -38.5014],
+        Fortaleza: [-3.7319, -38.5267],
+
+        // Africa
+        Cairo: [30.0444, 31.2357],
+        Lagos: [6.5244, 3.3792],
+        Nairobi: [-1.2921, 36.8219],
+        "Cape Town": [-33.9249, 18.4241],
+        Johannesburg: [-26.2041, 28.0473],
+    };
 
     // Rendering functions
     function renderWorldMap(data) {
+        if (!data) {
+            console.error("renderWorldMap called with null or undefined data");
+            return;
+        }
+
         // Clear previous map if it exists
         const mapContainer = document.getElementById("world-map");
+        if (!mapContainer) {
+            console.error("World map container not found in the DOM");
+            return;
+        }
         mapContainer.innerHTML = "";
+
+        // Enable detailed debugging
+        console.group("Map Rendering Debug");
+        console.log("Full data for map:", data);
 
         const isDarkMode = document.documentElement.classList.contains("dark");
         const backgroundColor = isDarkMode ? "#1f2937" : "#ffffff";
@@ -503,58 +674,331 @@ DashAnalytics{% endblock %} {% block content %}
         const selectedRegionColor = "#3b82f6";
         const textColor = isDarkMode ? "#e5e7eb" : "#374151";
 
-        // Calculate max value for consistent scaling
-        const maxValue = Math.max(...Object.values(data));
+        console.log("Map container:", mapContainer);
+        console.log("Dark mode:", isDarkMode);
 
-        // Transform data for jsvectormap
+        // Extract the mapData specifically for country coloring
+        const mapData = data.mapData || {};
+
+        console.log("Map data:", mapData);
+        console.log("City customers data:", data.cityCustomers);
+
+        // Check if there's any data at all - we can still display markers even if mapData is empty
+        const hasData =
+            data.cityCustomers &&
+            ((data.cityCustomers.top &&
+                data.cityCustomers.top.labels &&
+                data.cityCustomers.top.labels.length) ||
+                (data.cityCustomers.bottom &&
+                    data.cityCustomers.bottom.labels &&
+                    data.cityCustomers.bottom.labels.length));
+
+        if (!hasData && (!mapData || Object.keys(mapData).length === 0)) {
+            console.log("No geographical data available to display");
+            const errorMessage = document.createElement("div");
+            errorMessage.className = "flex items-center justify-center h-full";
+            errorMessage.innerHTML =
+                '<p class="text-gray-500 dark:text-gray-400">No geographical data available to display</p>';
+            mapContainer.appendChild(errorMessage);
+            console.groupEnd();
+            return;
+        }
+
+        // Calculate max value for consistent scaling with safeguards
+        const mapDataValues = Object.values(mapData);
+        console.log("Map data values:", mapDataValues);
+
+        const maxValue =
+            mapDataValues.length > 0 ? Math.max(1, ...mapDataValues) : 1; // Ensure we don't divide by zero
+        console.log("Calculated max value for scaling:", maxValue);
+
+        // Transform data for jsvectormap with error handling
         const mapValues = {};
-        Object.keys(data).forEach((country) => {
-            mapValues[country] = (data[country] / maxValue) * 100;
+        try {
+            Object.keys(mapData).forEach((country) => {
+                // Ensure the value is scaled properly between 0-100
+                const scaledValue = (mapData[country] / maxValue) * 100;
+                mapValues[country] = isFinite(scaledValue) ? scaledValue : 0;
+            });
+            console.log(
+                "Map values prepared:",
+                Object.keys(mapValues).length,
+                "countries"
+            );
+        } catch (e) {
+            console.error("Error preparing map values:", e);
+            // Provide fallback data if needed
+        }
+
+        // Add markers only for cities in our actual data
+        const markers = [];
+
+        // First identify top cities by customer count - these will get distinctive styling
+        const topCitiesByCustomers = new Set();
+
+        // Always add at least one default top city to ensure we have a marker
+        if (cityCoordinates["New York"]) {
+            topCitiesByCustomers.add("New York");
+        }
+
+        // Extract top 5 cities by customer count for distinctive markers (top priority)
+        if (
+            data.cityCustomers &&
+            data.cityCustomers.top &&
+            Array.isArray(data.cityCustomers.top.labels)
+        ) {
+            // Get the cities with the highest customer counts (top 5)
+            const topCities = data.cityCustomers.top.labels.slice(0, 5);
+            topCities.forEach((city) => topCitiesByCustomers.add(city));
+            console.log(
+                "Top cities by customers:",
+                Array.from(topCitiesByCustomers)
+            );
+        } else {
+            // If no city data, add some default top cities
+            ["London", "Tokyo", "Sydney", "Paris", "Berlin"].forEach((city) => {
+                if (cityCoordinates[city]) {
+                    topCitiesByCustomers.add(city);
+                }
+            });
+        }
+
+        // Add all cities that appear in our data
+        const citiesInData = new Set();
+
+        // Add cities from profit data
+        if (
+            data.cityProfit &&
+            data.cityProfit.profit &&
+            Array.isArray(data.cityProfit.profit.labels)
+        ) {
+            data.cityProfit.profit.labels.forEach((city) =>
+                citiesInData.add(city)
+            );
+        }
+
+        // Add cities from loss data
+        if (
+            data.cityProfit &&
+            data.cityProfit.loss &&
+            Array.isArray(data.cityProfit.loss.labels)
+        ) {
+            data.cityProfit.loss.labels.forEach((city) =>
+                citiesInData.add(city)
+            );
+        }
+
+        // Add cities from customer data (both top and bottom)
+        if (
+            data.cityCustomers &&
+            data.cityCustomers.top &&
+            Array.isArray(data.cityCustomers.top.labels)
+        ) {
+            data.cityCustomers.top.labels.forEach((city) =>
+                citiesInData.add(city)
+            );
+        }
+
+        if (
+            data.cityCustomers &&
+            data.cityCustomers.bottom &&
+            Array.isArray(data.cityCustomers.bottom.labels)
+        ) {
+            data.cityCustomers.bottom.labels.forEach((city) =>
+                citiesInData.add(city)
+            );
+        }
+
+        // First add all top cities to ensure they're always visible
+        if (topCitiesByCustomers.size > 0) {
+            Array.from(topCitiesByCustomers).forEach((city) => {
+                if (cityCoordinates[city]) {
+                    markers.push({
+                        name: city,
+                        coords: cityCoordinates[city],
+                        style: {
+                            fill: "#3b82f6", // Blue color for top cities
+                            r: 10, // Larger radius for more prominence
+                            stroke: "#fff",
+                            "stroke-width": 3, // Thicker border
+                            "stroke-opacity": 0.8,
+                            "fill-opacity": 1, // Full opacity for top cities
+                        },
+                    });
+                    // Add to citiesInData so we don't duplicate
+                    citiesInData.add(city);
+                }
+            });
+        }
+
+        // Convert to array and add markers for all other cities that have coordinates
+        Array.from(citiesInData).forEach((city) => {
+            // Skip top cities as they've already been added
+            if (!topCitiesByCustomers.has(city) && cityCoordinates[city]) {
+                markers.push({
+                    name: city,
+                    coords: cityCoordinates[city],
+                    style: {
+                        fill: "#ff9e00", // Orange for regular cities
+                        r: 5, // Default radius
+                        "fill-opacity": 0.7, // Slightly transparent for regular cities
+                    },
+                });
+            }
         });
+
+        // Verify markers before creating the map
+        console.log("Markers before map creation:", markers);
+        if (markers.length === 0) {
+            console.warn(
+                "No markers available for the map. Adding a default marker for testing."
+            );
+            // Add a default marker for New York as a fallback
+            if (cityCoordinates["New York"]) {
+                markers.push({
+                    name: "New York (Default)",
+                    coords: cityCoordinates["New York"],
+                    style: {
+                        fill: "#ff0000",
+                        r: 8,
+                        stroke: "#fff",
+                        "stroke-width": 2,
+                    },
+                });
+            }
+        }
 
         // Create new map
-        worldMap = new jsVectorMap({
-            selector: "#world-map",
-            map: "world",
-            backgroundColor: backgroundColor,
-            regionStyle: {
-                initial: {
-                    fill: regionColor,
-                    stroke: isDarkMode ? "#4b5563" : "#d1d5db",
-                    "stroke-width": 0.5,
-                },
-                hover: {
-                    fill: "#60a5fa",
-                },
-                selected: {
-                    fill: selectedRegionColor,
-                },
-            },
-            labels: {
-                markers: {
-                    render: (marker) => marker.name,
-                    offsets: (index) => [0, 0],
-                },
-            },
-            series: {
-                regions: [
-                    {
-                        values: mapValues,
-                        scale: ["#c6e0ff", "#0059ff"],
-                        normalizeFunction: "linear",
+        try {
+            console.log("Creating map with markers:", markers.length);
+            // Configure focus settings if we have top cities
+            const mapOptions = {
+                selector: "#world-map",
+                map: "world",
+                backgroundColor: backgroundColor,
+                regionStyle: {
+                    initial: {
+                        fill: regionColor,
+                        stroke: isDarkMode ? "#4b5563" : "#d1d5db",
+                        "stroke-width": 0.5,
                     },
-                ],
-            },
-            onRegionTipShow: function (event, tooltip, code) {
-                if (data[code]) {
-                    tooltip.innerHTML = `${tooltip.innerHTML}: $${data[
-                        code
-                    ].toLocaleString()}`;
-                } else {
-                    tooltip.innerHTML = `${tooltip.innerHTML}: No data available`;
+                    hover: {
+                        fill: "#60a5fa",
+                    },
+                    selected: {
+                        fill: selectedRegionColor,
+                    },
+                },
+                markers: markers,
+                markerStyle: {
+                    initial: {
+                        r: 5,
+                        fill: "#ff9e00", // Default color for regular cities
+                        stroke: "#fff",
+                        "stroke-width": 2,
+                        "stroke-opacity": 0.6,
+                    },
+                    hover: {
+                        r: 12, // Larger hover state for better visibility
+                        stroke: "#fff",
+                        "stroke-width": 3,
+                        "stroke-opacity": 1,
+                    },
+                    // Setting to false so individual marker styles will take precedence
+                    inherit: false,
+                },
+                labels: {
+                    markers: {
+                        render: (marker) => {
+                            // Only show labels for top cities
+                            return topCitiesByCustomers.has(marker.name)
+                                ? marker.name
+                                : null;
+                        },
+                        offsets: (index) => [0, 0],
+                    },
+                },
+                series: {
+                    regions: [
+                        {
+                            values: mapValues,
+                            scale: ["#c6e0ff", "#0059ff"],
+                            normalizeFunction: "linear",
+                        },
+                    ],
+                },
+                onRegionTipShow: function (event, tooltip, code) {
+                    if (data[code]) {
+                        tooltip.innerHTML = `${tooltip.innerHTML}: $${data[
+                            code
+                        ].toLocaleString()}`;
+                    } else {
+                        tooltip.innerHTML = `${tooltip.innerHTML}: No data available`;
+                    }
+                },
+                onMarkerTipShow: function (event, tooltip, code) {
+                    try {
+                        const marker = markers[code];
+                        if (marker && marker.name) {
+                            const city = marker.name;
+                            if (topCitiesByCustomers.has(city)) {
+                                tooltip.innerHTML = `<strong>${city}</strong> (Top city)`;
+                            } else {
+                                tooltip.innerHTML = city;
+                            }
+                        } else {
+                            console.warn(
+                                "Missing marker or marker name for tooltip",
+                                code
+                            );
+                            tooltip.innerHTML = "City data unavailable";
+                        }
+                    } catch (e) {
+                        console.error("Error in marker tooltip:", e);
+                        tooltip.innerHTML = "Error displaying city data";
+                    }
+                },
+            };
+
+            // Initialize the map
+            worldMap = new jsVectorMap(mapOptions);
+
+            // Add animation specifically highlighting top cities after the map is loaded
+            setTimeout(() => {
+                if (topCitiesByCustomers.size > 0 && markers.length > 0) {
+                    // Find the indices of top cities in the markers array
+                    const topCityIndices = markers
+                        .map((marker, index) =>
+                            topCitiesByCustomers.has(marker.name) ? index : -1
+                        )
+                        .filter((index) => index !== -1);
+
+                    // Flash top city markers with animation
+                    if (topCityIndices.length > 0) {
+                        // Highlight these markets momentarily
+                        worldMap.setSelectedMarkers(topCityIndices);
+
+                        // After a short delay, reset the selection
+                        setTimeout(() => {
+                            worldMap.clearSelectedMarkers();
+                        }, 1500);
+                    }
                 }
-            },
-        });
+            }, 500);
+        } catch (error) {
+            console.error("Error rendering world map:", error);
+            console.trace("Stack trace for error:");
+
+            const errorMessage = document.createElement("div");
+            errorMessage.className = "flex items-center justify-center h-full";
+            errorMessage.innerHTML =
+                '<p class="text-red-500">Error loading map. Please try again.</p>';
+            mapContainer.appendChild(errorMessage);
+        }
+
+        console.log("Map markers count:", markers.length);
+        console.log("Top cities count:", topCitiesByCustomers.size);
+        console.groupEnd();
     }
 
     function renderCountriesChart(data) {
@@ -697,35 +1141,7 @@ DashAnalytics{% endblock %} {% block content %}
         });
     }
 
-    function renderRegionsTable(data) {
-        const tableBody = document.getElementById("regions-table");
-        tableBody.innerHTML = ""; // Clear existing rows except loading row
-
-        // Add loading row back
-        const loadingRow = document.querySelector(".animate-pulse");
-        if (loadingRow) {
-            tableBody.appendChild(loadingRow);
-        }
-
-        data.forEach((region) => {
-            const row = document.createElement("tr");
-            row.classList.add("hover:bg-gray-100", "dark:hover:bg-gray-700");
-
-            const growthClass = region.growth.includes("+")
-                ? "text-green-500"
-                : "text-red-500";
-
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">${region.region}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${region.currentSales}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${region.previousSales}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm ${growthClass}">${region.growth}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${region.marketShare}</td>
-            `;
-
-            tableBody.appendChild(row);
-        });
-    }
+    // The renderRegionsTable function was removed as the Sales Growth by Region section is no longer needed
 
     // Update charts when theme changes
     document.addEventListener("theme-changed", function () {
