@@ -147,13 +147,55 @@
         // Event listeners for filters
         document.getElementById('period-select').addEventListener('change', loadProductPerformanceData);
         document.getElementById('category-filter').addEventListener('change', loadProductPerformanceData);
+        
+        // Function to update category filter options
+        function updateCategoryFilter(categories) {
+            const categoryFilter = document.getElementById('category-filter');
+            const selectedValue = categoryFilter.value;
+            
+            // Clear existing options except "All Categories"
+            while (categoryFilter.options.length > 1) {
+                categoryFilter.remove(1);
+            }
+            
+            // Add new options
+            if (categories && categories.length > 0) {
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    categoryFilter.appendChild(option);
+                });
+            }
+            
+            // Try to restore selected value if it exists in new options
+            if (selectedValue && selectedValue !== 'all') {
+                for (let i = 0; i < categoryFilter.options.length; i++) {
+                    if (categoryFilter.options[i].value === selectedValue) {
+                        categoryFilter.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
 
         function loadProductPerformanceData() {
             const period = document.getElementById('period-select').value;
             const category = document.getElementById('category-filter').value;
             
-            fetch(`/api/products/performance/?period=${period}&category=${category}`)
-                .then(response => response.json())
+            // Show loading indicators
+            document.getElementById('best-product-card').innerHTML = '<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Best Performing Product</h3><div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
+            document.getElementById('top-category-card').innerHTML = '<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Top Category</h3><div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
+            document.getElementById('top-volume-card').innerHTML = '<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Highest Volume Product</h3><div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
+            document.getElementById('product-performance-table').innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400"><div class="flex items-center justify-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div><span class="ml-2">Loading data...</span></div></td></tr>';
+            
+            fetch(`/api/analytics/product_performance/?period=${period}&category=${category}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     updateTopMetrics(data);
                     renderBestSellingChart(data.best_selling);
@@ -161,8 +203,15 @@
                     renderVolumeChart(data.volume_data);
                     renderAvgRevenueChart(data.avg_revenue);
                     renderProductTable(data.detailed_performance);
+                    
+                    // Update category filter options
+                    updateCategoryFilter(data.available_categories);
                 })
-                .catch(error => console.error('Error loading data:', error));
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    // Show error message to user
+                    document.getElementById('product-performance-table').innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-sm text-red-500">Error loading data. Please try again later.</td></tr>';
+                });
         }
 
         function updateTopMetrics(data) {
@@ -170,32 +219,38 @@
             const topCategoryCard = document.getElementById('top-category-card');
             const topVolumeCard = document.getElementById('top-volume-card');
 
+            // Handle best performing product
+            const bestProduct = data.best_product || { name: "No data", revenue: 0 };
             bestProductCard.innerHTML = `
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${data.best_product.name}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Revenue: $${data.best_product.revenue.toLocaleString()}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${bestProduct.name}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Revenue: $${Number(bestProduct.revenue).toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
                 <div class="mt-2">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
-                        ${data.best_product.growth}% growth
+                        Top selling product
                     </span>
                 </div>
             `;
 
+            // Handle top category
+            const topCategory = data.top_category || { name: "No data", sales: 0, market_share: 0 };
             topCategoryCard.innerHTML = `
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${data.top_category.name}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Total Sales: $${data.top_category.sales.toLocaleString()}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${topCategory.name}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Sales: $${Number(topCategory.sales).toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
                 <div class="mt-2">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
-                        ${data.top_category.market_share}% market share
+                        ${topCategory.market_share}% market share
                     </span>
                 </div>
             `;
 
+            // Handle highest volume product
+            const topVolume = data.top_volume || { name: "No data", quantity: 0, percentage: 0 };
             topVolumeCard.innerHTML = `
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${data.top_volume.name}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Units Sold: ${data.top_volume.quantity.toLocaleString()}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${topVolume.name}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Units Sold: ${Number(topVolume.quantity).toLocaleString()}</p>
                 <div class="mt-2">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100">
-                        ${data.top_volume.percentage}% of total volume
+                        ${topVolume.percentage}% of total volume
                     </span>
                 </div>
             `;
@@ -206,6 +261,15 @@
             
             if (bestSellingChart) {
                 bestSellingChart.destroy();
+            }
+            
+            // Handle empty data
+            if (!data || data.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = textColor;
+                ctx.textAlign = 'center';
+                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
             }
 
             bestSellingChart = new Chart(ctx, {
@@ -227,6 +291,13 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Revenue: $${context.raw.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -236,7 +307,7 @@
                             },
                             ticks: {
                                 color: textColor,
-                                callback: value => '$' + value.toLocaleString()
+                                callback: value => '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0})
                             }
                         },
                         y: {
@@ -259,6 +330,15 @@
                 categoryChart.destroy();
             }
 
+            // Handle empty data
+            if (!data || data.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = textColor;
+                ctx.textAlign = 'center';
+                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
             categoryChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -277,6 +357,18 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const item = data[context.dataIndex];
+                                    return [
+                                        `Sales: $${context.raw.toLocaleString(undefined, {maximumFractionDigits: 2})}`,
+                                        `Products: ${item.product_count}`,
+                                        `Units: ${item.total_quantity.toLocaleString()}`
+                                    ];
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -296,7 +388,7 @@
                             },
                             ticks: {
                                 color: textColor,
-                                callback: value => '$' + value.toLocaleString()
+                                callback: value => '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0})
                             }
                         }
                     }
@@ -309,6 +401,15 @@
             
             if (volumeChart) {
                 volumeChart.destroy();
+            }
+
+            // Handle empty data
+            if (!data || data.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = textColor;
+                ctx.textAlign = 'center';
+                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
             }
 
             volumeChart = new Chart(ctx, {
@@ -330,6 +431,13 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Units Sold: ${context.raw.toLocaleString()}`;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -362,6 +470,15 @@
                 avgRevenueChart.destroy();
             }
 
+            // Handle empty data
+            if (!data || data.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = textColor;
+                ctx.textAlign = 'center';
+                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
             avgRevenueChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -381,6 +498,13 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Avg Revenue: $${context.raw.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -390,7 +514,7 @@
                             },
                             ticks: {
                                 color: textColor,
-                                callback: value => '$' + value.toLocaleString()
+                                callback: value => '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0})
                             }
                         },
                         y: {
@@ -410,10 +534,29 @@
             const tableBody = document.getElementById('product-performance-table');
             tableBody.innerHTML = '';
 
+            if (!data || data.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="6" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No product data available for the selected filters.
+                    </td>
+                `;
+                tableBody.appendChild(row);
+                return;
+            }
+
             data.forEach(product => {
                 const row = document.createElement('tr');
-                const trendColor = product.trend >= 0 ? 'text-green-600' : 'text-red-600';
-                const trendArrow = product.trend >= 0 ? '↑' : '↓';
+                
+                // Handle trend display
+                let trendDisplay = '';
+                if (product.trend !== undefined && product.trend !== null) {
+                    const trendColor = product.trend >= 0 ? 'text-green-600' : 'text-red-600';
+                    const trendArrow = product.trend >= 0 ? '↑' : '↓';
+                    trendDisplay = `<span class="${trendColor}">${trendArrow} ${Math.abs(product.trend)}%</span>`;
+                } else {
+                    trendDisplay = '<span class="text-gray-400">N/A</span>';
+                }
                 
                 row.innerHTML = `
                     <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
@@ -423,16 +566,16 @@
                         ${product.category}
                     </td>
                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        ${product.units_sold.toLocaleString()}
+                        ${Number(product.units_sold).toLocaleString()}
                     </td>
                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        $${product.revenue.toLocaleString()}
+                        $${Number(product.revenue).toLocaleString(undefined, {maximumFractionDigits: 2})}
                     </td>
                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        $${product.avg_price.toLocaleString()}
+                        $${Number(product.avg_price).toLocaleString(undefined, {maximumFractionDigits: 2})}
                     </td>
-                    <td class="px-4 py-2 whitespace-nowrap text-sm ${trendColor}">
-                        ${trendArrow} ${Math.abs(product.trend)}%
+                    <td class="px-4 py-2 whitespace-nowrap text-sm">
+                        ${trendDisplay}
                     </td>
                 `;
                 
