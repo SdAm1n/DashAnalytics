@@ -192,16 +192,18 @@
 
                     <div class="flex items-center">
                         <!-- Date Filter -->
+                        {% comment %}
                         <div class="mr-4">
                             <select
                                 class="date-filter bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                <option value="all">All Time</option>
-                                <option value="year">This Year</option>
-                                <option value="month">This Month</option>
-                                <option value="week">This Week</option>
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                                <option value="90d">Last 90 Days</option>
+                                <option value="1y" selected>Last Year</option>
                             </select>
                         </div>
+                        {% endcomment %}
 
                         <!-- Theme Toggle -->
                         <div class="mr-4">
@@ -286,17 +288,26 @@
 
         <script>
             // Date filter functionality
-            document
-                .querySelector(".date-filter")
-                ?.addEventListener("change", function () {
+            const dateFilter = document.querySelector(".date-filter");
+            if (dateFilter) {
+                // Set initial value from localStorage or default to '1y'
+                const savedPeriod =
+                    localStorage.getItem("selectedPeriod") || "1y";
+                dateFilter.value = savedPeriod;
+
+                dateFilter.addEventListener("change", function () {
                     const selectedPeriod = this.value;
                     console.log("Selected period:", selectedPeriod);
+
+                    // Save selection to localStorage
+                    localStorage.setItem("selectedPeriod", selectedPeriod);
 
                     // Call API with the selected period and update charts
                     if (typeof updateChartsWithPeriod === "function") {
                         updateChartsWithPeriod(selectedPeriod);
                     }
                 });
+            }
 
             // Theme toggle with AJAX
             document

@@ -35,8 +35,11 @@ def product_performance_api(request):
         start_date = end_date - timedelta(days=90)
     elif period == '1y':
         start_date = end_date - timedelta(days=365)
-    else:  # 'all'
-        start_date = None
+    else:
+        # Default to last year if an unexpected value is received
+        start_date = end_date - timedelta(days=365)
+        logger.warning(
+            f"Unexpected period value: {period}. Defaulting to last year.")
 
     # Base query for sales data
     sales_query = Sales.objects.using(db_alias)
