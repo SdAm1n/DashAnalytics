@@ -1,5 +1,7 @@
 {% extends "base.html" %} 
-{% block title %}Dashboard - Dash Analytics{% endblock %} 
+{% block title %} 
+Dashboard - Dash Analytics 
+{%endblock%} 
 {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- Stats Cards -->
@@ -260,82 +262,6 @@
         </div>
     </div>
 </div>
-
-<!-- Recent Orders Section -->
-<div class="mt-8">
-    <div
-        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
-    >
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Recent Orders
-            </h2>
-            <a href="#" class="text-blue-600 hover:text-blue-800 text-sm">
-                View All Orders
-                <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-        <div class="overflow-x-auto">
-            <div
-                class="orders-table-loader py-4 text-center text-gray-500 dark:text-gray-400"
-            >
-                <div
-                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"
-                ></div>
-                <p>Loading orders data...</p>
-            </div>
-            <table
-                class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
-            >
-                <thead>
-                    <tr>
-                        <th
-                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Order ID
-                        </th>
-                        <th
-                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Customer
-                        </th>
-                        <th
-                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Date
-                        </th>
-                        <th
-                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Total
-                        </th>
-                        <th
-                            class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                        >
-                            Status
-                        </th>
-                    </tr>
-                </thead>
-                <tbody
-                    class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-                    id="recentOrdersTable"
-                >
-                    <!-- Orders will be populated here -->
-                    <tr>
-                        <td
-                            class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400"
-                            colspan="5"
-                        >
-                            <div class="text-center">
-                                Loading recent orders...
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
 {% endblock %} {% block extra_js %}
 <script>
     // Function to format currency
@@ -378,7 +304,6 @@
         fetchSummary(period);
         fetchSalesTrendData(period);
         fetchTopProducts();
-        fetchRecentOrders();
         fetchDemographicsData();
     }
 
@@ -391,7 +316,6 @@
         document.querySelector(".products-chart-loader").style.display = "flex";
         document.querySelector(".demographics-chart-loader").style.display =
             "flex";
-        document.querySelector(".orders-table-loader").style.display = "block";
     }
 
     // Function to hide loading indicators
@@ -400,7 +324,6 @@
         document.querySelector(".products-chart-loader").style.display = "none";
         document.querySelector(".demographics-chart-loader").style.display =
             "none";
-        document.querySelector(".orders-table-loader").style.display = "none";
     }
 
     // Fetch summary data for dashboard
@@ -583,63 +506,7 @@
             });
     }
 
-    // Fetch recent orders
-    function fetchRecentOrders() {
-        document.querySelector(".orders-table-loader").style.display = "block";
-
-        fetch("/api/orders/recent/?limit=5")
-            .then((response) => response.json())
-            .then((data) => {
-                updateRecentOrdersTable(data);
-                document.querySelector(".orders-table-loader").style.display =
-                    "none";
-            })
-            .catch((error) => {
-                console.error("Error fetching recent orders:", error);
-
-                // Fallback to sample data
-                const sampleData = [
-                    {
-                        order_id: "ORD-12345",
-                        customer_id: "CUST-001",
-                        date: "2023-06-15T14:30:00Z",
-                        total: 125.99,
-                        status: "Delivered",
-                    },
-                    {
-                        order_id: "ORD-12346",
-                        customer_id: "CUST-002",
-                        date: "2023-06-14T10:45:00Z",
-                        total: 89.5,
-                        status: "Shipped",
-                    },
-                    {
-                        order_id: "ORD-12347",
-                        customer_id: "CUST-003",
-                        date: "2023-06-14T09:15:00Z",
-                        total: 245.75,
-                        status: "Processing",
-                    },
-                    {
-                        order_id: "ORD-12348",
-                        customer_id: "CUST-004",
-                        date: "2023-06-13T16:20:00Z",
-                        total: 45.25,
-                        status: "Delivered",
-                    },
-                    {
-                        order_id: "ORD-12349",
-                        customer_id: "CUST-005",
-                        date: "2023-06-13T11:05:00Z",
-                        total: 188.3,
-                        status: "Delivered",
-                    },
-                ];
-                updateRecentOrdersTable(sampleData);
-                document.querySelector(".orders-table-loader").style.display =
-                    "none";
-            });
-    }
+    // Recent Orders section has been removed
 
     // Update the sales trend chart
     function updateSalesTrendChart(data) {
@@ -911,63 +778,7 @@
         });
     }
 
-    // Update the recent orders table
-    function updateRecentOrdersTable(orders) {
-        const tableBody = document.getElementById("recentOrdersTable");
-
-        if (!orders || orders.length === 0) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100" colspan="5">
-                        <div class="text-center py-4">
-                            <i class="fas fa-inbox text-gray-400 text-3xl mb-2"></i>
-                            <p>No recent orders found</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        let tableContent = "";
-
-        orders.forEach((order) => {
-            const statusClass =
-                order.status === "Delivered"
-                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    : order.status === "Shipped"
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                    : order.status === "Processing"
-                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                    : order.status === "Cancelled"
-                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                    : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-
-            tableContent += `
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-750 transition-all">
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${
-                        order.order_id
-                    }</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${
-                        order.customer_id
-                    }</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${formatDate(
-                        order.date
-                    )}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">${formatCurrency(
-                        order.total
-                    )}</td>
-                    <td class="px-6 py-4 text-sm">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${
-                order.status
-            }</span>
-                    </td>
-                </tr>
-            `;
-        });
-
-        tableBody.innerHTML = tableContent;
-    }
+    // Recent Orders table functionality has been removed
 
     // Initialize charts on page load
     document.addEventListener("DOMContentLoaded", function () {
@@ -979,7 +790,6 @@
         fetchSalesTrendData("week");
         fetchTopProducts();
         fetchDemographicsData();
-        fetchRecentOrders();
 
         // Setup event listeners for period buttons
         document.querySelectorAll(".period-button").forEach((button) => {

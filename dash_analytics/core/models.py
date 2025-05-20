@@ -2,6 +2,7 @@
 from datetime import datetime
 from django.contrib.auth.hashers import make_password, check_password
 from django.conf import settings
+from django.utils.timezone import now
 
 # Database connections are managed in settings.py
 
@@ -12,7 +13,7 @@ class MongoUser(Document):
     first_name = fields.StringField()
     last_name = fields.StringField()
     is_active = fields.BooleanField(default=True)
-    date_joined = fields.DateTimeField(default=datetime.utcnow)
+    date_joined = fields.DateTimeField(default=now)
     last_login = fields.DateTimeField()
 
     meta = {

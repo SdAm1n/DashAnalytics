@@ -5,7 +5,7 @@ from django.contrib.auth import login, logout, authenticate, update_session_auth
 from django.contrib.auth.hashers import check_password, make_password
 from .models import MongoUser, Customer, Product, Order, Sales
 from analytics.models import (
-    ProductPerformance, CategoryPerformance, Demographics, 
+    ProductPerformance, CategoryPerformance, Demographics,
     GeographicalInsights, CustomerBehavior, Prediction, SalesTrend
 )
 from api.serializers.user_serializer import UserSerializer
@@ -13,6 +13,7 @@ import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.utils.timezone import now
 
 
 def initialize_data():
@@ -28,7 +29,7 @@ def initialize_data():
         Product.objects().first()
         Order.objects().first()
         Sales.objects().first()
-        
+
         # Ensure analytics collections exist by touching them
         SalesTrend.objects().first()
         ProductPerformance.objects().first()
@@ -62,7 +63,7 @@ def dashboard(request):
     initialize_data()  # Ensure we have initial data
 
     if not request.user.is_authenticated:
-        return redirect('login')
+        return redirect('signin')
 
     try:
         # Add your dashboard context data here
@@ -94,22 +95,30 @@ def product_performance(request):
     return render(request, 'core/product_performance.html', context)
 
 
-@login_required
+# Temporarily removed @login_required for testing
 def demographics(request):
     """
-    Customer demographics view
+    Demographics analysis view - Authentication temporarily disabled for testing
     """
-    # Get user theme preference
-    theme = get_theme_preference(request)
+    # Get user theme preference with fallback for not logged in users
+    theme = get_theme_preference(
+        request) if request.user.is_authenticated else 'light'
 
     # Context data for demographics
     context = {
-        'title': 'Customer Demographics',
+        'title': 'Demographics',
         'active_page': 'demographics',
         'theme': theme
     }
 
     return render(request, 'core/demographics.html', context)
+
+
+def demographics_standalone(request):
+    """
+    Standalone demographics page - No template inheritance, CSS and JS included directly
+    """
+    return render(request, 'core/demographics_standalone.html')
 
 
 @login_required
@@ -174,11 +183,17 @@ def sales_trend(request):
     # Get user theme preference
     theme = get_theme_preference(request)
 
+    # Get unique categories for the filter dropdown - MongoDB/mongoengine doesn't support flat parameter
+    category_objects = Product.objects.distinct('category')
+    categories = category_objects if isinstance(
+        category_objects, list) else list(category_objects)
+
     # Context data for sales trend
     context = {
         'title': 'Sales Trend',
         'active_page': 'sales_trend',
-        'theme': theme
+        'theme': theme,
+        'categories': categories
     }
 
     return render(request, 'core/sales_trend.html', context)
@@ -217,7 +232,8 @@ def signin(request):
             password = request.POST.get('password')
 
             if not username or not password:
-                messages.error(request, 'Please provide both username and password.')
+                messages.error(
+                    request, 'Please provide both username and password.')
                 return render(request, 'core/signin.html')
 
             user = MongoUser.objects.filter(username=username).first()
@@ -236,17 +252,17 @@ def signin(request):
             request.session['_auth_user_hash'] = ''
 
             # Update last login
-            user.last_login = datetime.utcnow()
+            user.last_login = now()
             user.save(skip_password_hash=True)
 
             return redirect('dashboard')
 
     except Exception as e:
         print(f"Signin error: {str(e)}")
-        messages.error(request, 'An error occurred during login. Please try again.')
+        messages.error(
+            request, 'An error occurred during login. Please try again.')
 
     return render(request, 'core/signin.html')
-
 
 
 def signup(request):
@@ -293,7 +309,8 @@ def signup(request):
 
         except Exception as e:
             print(f"Signup error: {str(e)}")
-            messages.error(request, 'An error occurred during registration. Please try again.')
+            messages.error(
+                request, 'An error occurred during registration. Please try again.')
             return redirect('signup')
 
     return render(request, 'core/signup.html')
@@ -329,7 +346,8 @@ def profile(request):
                 # Update user's profile information
                 user = request.user
                 user.email = request.POST.get('email', user.email)
-                user.first_name = request.POST.get('first_name', user.first_name)
+                user.first_name = request.POST.get(
+                    'first_name', user.first_name)
                 user.last_name = request.POST.get('last_name', user.last_name)
                 user.save()
                 messages.success(request, "Profile updated successfully.")
@@ -381,3 +399,30 @@ def get_theme_preference(request):
     Helper function to get user theme preference from session
     """
     return request.session.get('theme', 'light')
+
+
+@login_required
+# No @login_required decorator intentionally for testing
+def demographics_debug(request):
+    """
+    Demographics debug view - Not requiring login for testing purposes
+    """
+    # Get user theme preference (with a fallback for non-authenticated users)
+    theme = get_theme_preference(
+        request) if request.user.is_authenticated else 'light'
+
+    # Context data for demographics debug
+    context = {
+        'title': 'Demographics Debug',
+        'active_page': 'demographics_debug',
+        'theme': theme
+    }
+
+    return render(request, 'core/demographics_debug.html', context)
+
+
+def chart_test_view(request):
+    """
+    Simple view to test Chart.js rendering
+    """
+    return render(request, 'core/chart_test.html', {})

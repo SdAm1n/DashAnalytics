@@ -1,0 +1,155 @@
+{% extends "base.html" %} {% block title %}Demographics Debug - DashAnalytics{%
+endblock %} {% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4">Demographics API Debug</h1>
+
+    <div class="mb-6">
+        <label for="time-period" class="block text-sm font-medium mb-1"
+            >Time Period</label
+        >
+        <div class="flex gap-4">
+            <select
+                id="time-period"
+                class="bg-gray-100 border border-gray-300 rounded-md px-3 py-2"
+            >
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+                <option value="90d">Last 90 Days</option>
+                <option value="1y" selected>Last Year</option>
+                <option value="all">All Time</option>
+            </select>
+            <button
+                id="load-data"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition"
+            >
+                Load Data
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">API Response</h2>
+        <div
+            id="api-response"
+            class="bg-gray-100 p-4 rounded overflow-auto"
+            style="max-height: 400px"
+        >
+            <pre>Loading...</pre>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">Age Distribution Test</h2>
+            <div class="h-80">
+                <canvas id="testAgeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">Gender Distribution Test</h2>
+            <div class="h-80">
+                <canvas id="testGenderChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let testAgeChart, testGenderChart;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document
+            .getElementById("load-data")
+            .addEventListener("click", loadData);
+    });
+
+    function loadData() {
+        const period = document.getElementById("time-period").value;
+        const responseDiv = document
+            .getElementById("api-response")
+            .querySelector("pre");
+
+        responseDiv.textContent = "Loading...";
+
+        fetch(`/api/analytics/demographics/?period=${period}`)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then((data) => {
+                // Display the entire response
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+
+                // Render test charts
+                renderTestAgeChart(data.age_distribution);
+                renderTestGenderChart(data.gender_distribution);
+            })
+            .catch((error) => {
+                responseDiv.textContent = `Error: ${error.message}\n\n${error.stack}`;
+                console.error("Error loading demographics data:", error);
+            });
+    }
+
+    function renderTestAgeChart(data) {
+        const ctx = document.getElementById("testAgeChart").getContext("2d");
+
+        if (testAgeChart) {
+            testAgeChart.destroy();
+        }
+
+        console.log("Age Distribution Data:", data);
+
+        testAgeChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: "Number of Customers",
+                        data: data.values,
+                        backgroundColor: "rgba(59, 130, 246, 0.8)",
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+            },
+        });
+    }
+
+    function renderTestGenderChart(data) {
+        const ctx = document.getElementById("testGenderChart").getContext("2d");
+
+        if (testGenderChart) {
+            testGenderChart.destroy();
+        }
+
+        console.log("Gender Distribution Data:", data);
+
+        testGenderChart = new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: ["Male", "Female"],
+                datasets: [
+                    {
+                        data: [data.male, data.female],
+                        backgroundColor: [
+                            "rgba(14, 165, 233, 0.8)",
+                            "rgba(236, 72, 153, 0.8)",
+                        ],
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+            },
+        });
+    }
+</script>
+{% endblock %}
