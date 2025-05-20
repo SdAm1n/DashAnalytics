@@ -16,14 +16,14 @@ from django.db.models import Sum, Avg, Count, F
 
 class SalesTrendView(APIView):
     """API endpoint for Sales Trend data"""
-    # Authentication is restored for production use
-    permission_classes = [IsAuthenticated]
+    # Temporarily disable authentication for development
+    permission_classes = []  # Empty list = no authentication required
 
     def get(self, request):
         """Get sales trend data based on filters"""
         try:
             # Extract query parameters
-            period = request.GET.get('period', 'monthly')
+            period = request.GET.get('period', 'week')
             category = request.GET.get('category', 'all')
             date_from = request.GET.get('date_from')
             date_to = request.GET.get('date_to')

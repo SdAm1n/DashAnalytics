@@ -1,10 +1,14 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from core.models import Order
+from core.models import Order, Sales
 from api.serializers import OrderSerializer
 from django.http import Http404
 import datetime
+import pandas as pd
+from django.utils import timezone
+from datetime import timedelta
+
 
 class OrderViewSet(viewsets.ViewSet):
     """
@@ -68,71 +72,142 @@ class OrderViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def sales_trend(self, request):
         """
-        Get sales trend data for visualization
+        Get sales trend data for the dashboard
         """
-        period = request.query_params.get('period', 'monthly')
+        from datetime import datetime, timedelta
+        from dateutil.relativedelta import relativedelta
+        import pandas as pd
 
-        # Create the appropriate time grouping query
-        if period == 'daily':
-            time_group = {
-                "year": {"$year": "$order_date"},
-                "month": {"$month": "$order_date"},
-                "day": {"$dayOfMonth": "$order_date"}
-            }
-        elif period == 'weekly':
-            time_group = {
-                "year": {"$year": "$order_date"},
-                "week": {"$week": "$order_date"}
-            }
-        elif period == 'monthly':
-            time_group = {
-                "year": {"$year": "$order_date"},
-                "month": {"$month": "$order_date"}
-            }
-        elif period == 'quarterly':
-            time_group = {
-                "year": {"$year": "$order_date"},
-                "quarter": {"$ceil": {"$divide": [{"$month": "$order_date"}, 3]}}
-            }
-        else:  # yearly
-            time_group = {
-                "year": {"$year": "$order_date"}
-            }
+        # Get period parameter (default to week)
+        period = request.query_params.get('period', 'week')
 
-        # Get sales data grouped by time period
-        sales_trend = Order.objects.aggregate([
-            {"$group": {
-                "_id": time_group,
-                "total_sales": {"$sum": "$total_amount"},
-                "order_count": {"$sum": 1}
-            }},
-            {"$sort": {"_id.year": 1, "_id.month": 1,
-                       "_id.day": 1, "_id.week": 1, "_id.quarter": 1}}
-        ])
+        # Define time periods based on the selected period
+        end_date = datetime.now()
+        if period == 'week':
+            # Get data for the last 7 days
+            start_date = end_date - timedelta(days=7)
+            # Format for daily data points
+            format_str = '%Y-%m-%d'
+            date_list = [(start_date + timedelta(days=i)
+                          ).strftime(format_str) for i in range(8)]
+        elif period == 'month':
+            # Get data for the last 30 days
+            start_date = end_date - timedelta(days=30)
+            # Format for weekly data points
+            format_str = '%Y-%m-%d'
+            date_list = [(start_date + timedelta(days=i*7)
+                          ).strftime(format_str) for i in range(5)]
+        elif period == 'year':
+            # Get data for the last 12 months
+            start_date = end_date - relativedelta(months=12)
+            # Format for monthly data points
+            format_str = '%Y-%m'
+            date_list = [(end_date - relativedelta(months=i)
+                          ).strftime(format_str) for i in range(12, -1, -1)]
+        else:
+            # Default to week if not recognized
+            start_date = end_date - timedelta(days=7)
+            format_str = '%Y-%m-%d'
+            date_list = [(start_date + timedelta(days=i)
+                          ).strftime(format_str) for i in range(8)]
 
-        # Format data for frontend charts
-        result = []
-        for item in sales_trend:
-            time_id = item['_id']
+        # Query orders within the date range
+        try:
+            if period == 'year':
+                # For yearly data, we need to query by month
+                orders = Order.objects.filter(order_date__gte=start_date)
 
-            if period == 'daily':
-                label = f"{time_id['year']}-{time_id['month']:02d}-{time_id['day']:02d}"
-            elif period == 'weekly':
-                label = f"{time_id['year']} Week {time_id['week']}"
-            elif period == 'monthly':
-                label = f"{time_id['year']}-{time_id['month']:02d}"
-            elif period == 'quarterly':
-                label = f"{time_id['year']} Q{time_id['quarter']}"
-            else:  # yearly
-                label = f"{time_id['year']}"
+                # Convert to pandas DataFrame for easier manipulation
+                orders_data = []
+                for order in orders:
+                    orders_data.append({
+                        'order_id': str(order.order_id),
+                        'order_date': order.order_date,
+                        'quantity': order.quantity,
+                        'total_amount': order.quantity * float(order.product_id.price if hasattr(order.product_id, 'price') else 0)
+                    })
 
-            result.append({
-                'period': label,
-                'total_sales': float(item['total_sales']),
-                'order_count': item['order_count']
-            })
+                df = pd.DataFrame(orders_data)
 
-        return Response(result)
+                # Extract month from dates and group by month
+                if not df.empty:
+                    df['period'] = df['order_date'].dt.strftime('%Y-%m')
+                    monthly_data = df.groupby('period').agg(
+                        total_sales=('total_amount', 'sum'),
+                        order_count=('order_id', 'count')
+                    ).reset_index()
+
+                    # Create dictionary mapping month to data
+                    data_dict = {row['period']: {
+                        'total_sales': float(row['total_sales']),
+                        'order_count': int(row['order_count'])
+                    } for _, row in monthly_data.iterrows()}
+
+                    # Create result with all months in the period
+                    result = []
+                    for date_str in date_list:
+                        period_data = data_dict.get(
+                            date_str, {'total_sales': 0, 'order_count': 0})
+                        result.append({
+                            'period': date_str,
+                            'total_sales': period_data['total_sales'],
+                            'order_count': period_data['order_count']
+                        })
+                else:
+                    # No data found
+                    result = [{'period': date, 'total_sales': 0,
+                               'order_count': 0} for date in date_list]
+            else:
+                # For weekly or daily data
+                orders = Order.objects.filter(order_date__gte=start_date)
+
+                # Convert to pandas DataFrame
+                orders_data = []
+                for order in orders:
+                    orders_data.append({
+                        'order_id': str(order.order_id),
+                        'order_date': order.order_date,
+                        'quantity': order.quantity,
+                        'total_amount': order.quantity * float(order.product_id.price if hasattr(order.product_id, 'price') else 0)
+                    })
+
+                df = pd.DataFrame(orders_data)
+
+                # Format dates and group
+                if not df.empty:
+                    df['period'] = df['order_date'].dt.strftime(format_str)
+                    daily_data = df.groupby('period').agg(
+                        total_sales=('total_amount', 'sum'),
+                        order_count=('order_id', 'count')
+                    ).reset_index()
+
+                    # Create dictionary mapping date to data
+                    data_dict = {row['period']: {
+                        'total_sales': float(row['total_sales']),
+                        'order_count': int(row['order_count'])
+                    } for _, row in daily_data.iterrows()}
+
+                    # Create result with all dates in the period
+                    result = []
+                    for date_str in date_list:
+                        period_data = data_dict.get(
+                            date_str, {'total_sales': 0, 'order_count': 0})
+                        result.append({
+                            'period': date_str,
+                            'total_sales': period_data['total_sales'],
+                            'order_count': period_data['order_count']
+                        })
+                else:
+                    # No data found
+                    result = [{'period': date, 'total_sales': 0,
+                               'order_count': 0} for date in date_list]
+
+            return Response(result)
+        except Exception as e:
+            return Response(
+                {'error': f'Error retrieving sales trend data: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=False, methods=['get'])
     def recent(self, request):

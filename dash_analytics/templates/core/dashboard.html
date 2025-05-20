@@ -1,8 +1,5 @@
-{% extends "base.html" %} 
-{% block title %} 
-Dashboard - Dash Analytics 
-{%endblock%} 
-{% block content %}
+{% extends "base.html" %} {% block title %} Dashboard - Dash Analytics
+{%endblock%} {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- Stats Cards -->
     <div
@@ -217,53 +214,88 @@ Dashboard - Dash Analytics
                     class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"
                 ></div>
             </div>
-            <canvas id="demographicsChart"></canvas>
-        </div>
-    </div>
-
-    <!-- Geographic Insights Map -->
-    <div
-        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
-    >
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Geographic Insights
-            </h2>
-            <a
-                href="{% url 'geographical_insights' %}"
-                class="text-blue-600 hover:text-blue-800 text-sm"
-            >
-                View Details
-                <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-        <div
-            class="h-64 flex items-center justify-center geographic-map-container"
-        >
-            <div id="geographicMap" class="w-full h-full">
-                <div
-                    class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400"
-                >
-                    <div class="text-center">
-                        <i class="fas fa-globe text-4xl mb-2"></i>
-                        <p>
-                            Interactive map visualization available in detailed
-                            view
-                        </p>
-                        <a
-                            href="{% url 'geographical_insights' %}"
-                            class="text-blue-600 hover:text-blue-800 inline-block mt-2 px-4 py-2 rounded-lg border border-blue-600 hover:bg-blue-600 hover:text-white transition-all"
-                        >
-                            View Full Map
-                        </a>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Gender Ratio
+                    </p>
+                    <div
+                        id="genderRatioMetric"
+                        class="text-xl font-bold text-gray-900 dark:text-gray-100"
+                    >
+                        --
+                    </div>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Most Active Age
+                    </p>
+                    <div
+                        id="activeAgeMetric"
+                        class="text-xl font-bold text-gray-900 dark:text-gray-100"
+                    >
+                        --
                     </div>
                 </div>
             </div>
+            <div class="h-56">
+                <canvas id="demographicsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Geographic Insight Preview -->
+    <div
+        class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 transition-all hover:shadow-lg"
+    >
+        <div class="flex flex-col items-center mb-4">
+            <h2
+                class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4"
+            >
+                Geographical Insights
+            </h2>
+            <a
+                href="{% url 'geographical_insights' %}"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 flex items-center gap-4 shadow-sm hover:shadow-md"
+            >
+                View Full Report
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                </svg>
+            </a>
+        </div>
+        <div class="h-64 relative">
+            <div
+                class="absolute inset-0 flex items-center justify-center geo-chart-loader"
+            >
+                <div
+                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+                ></div>
+            </div>
+            <div id="geoInsightsChart" class="h-full"></div>
         </div>
     </div>
 </div>
 {% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Chart instances
+    let salesTrendChart = null;
+    let topProductsChart = null;
+    let demographicsChart = null;
+    let geoChart = null;
+
     // Function to format currency
     function formatCurrency(amount) {
         return new Intl.NumberFormat("en-US", {
@@ -305,6 +337,7 @@ Dashboard - Dash Analytics
         fetchSalesTrendData(period);
         fetchTopProducts();
         fetchDemographicsData();
+        console.log("Updating charts for period:", period);
     }
 
     // Function to show loading indicators
@@ -419,7 +452,26 @@ Dashboard - Dash Analytics
             }
         });
 
-        fetch(`/api/orders/sales_trend/?period=${period}`)
+        // Calculate date range based on period
+        const today = new Date();
+        let dateFrom = new Date(today);
+        switch (period) {
+            case "week":
+                dateFrom.setDate(today.getDate() - 7);
+                break;
+            case "month":
+                dateFrom.setMonth(today.getMonth() - 1);
+                break;
+            case "year":
+                dateFrom.setFullYear(today.getFullYear() - 1);
+                break;
+        }
+
+        fetch(
+            `/api/analytics/sales_trend/?period=${period}&category=all&date_from=${
+                dateFrom.toISOString().split("T")[0]
+            }&date_to=${today.toISOString().split("T")[0]}`
+        )
             .then((response) => response.json())
             .then((data) => {
                 updateSalesTrendChart(data);
@@ -429,14 +481,56 @@ Dashboard - Dash Analytics
             .catch((error) => {
                 console.error("Error fetching sales trend data:", error);
 
-                // Fallback to sample data
+                // Fallback to sample data with the same format as the sales trend page
                 const sampleData = [
-                    { period: "2023-01", total_sales: 25000, order_count: 120 },
-                    { period: "2023-02", total_sales: 28000, order_count: 135 },
-                    { period: "2023-03", total_sales: 29500, order_count: 140 },
-                    { period: "2023-04", total_sales: 31000, order_count: 150 },
-                    { period: "2023-05", total_sales: 33000, order_count: 160 },
-                    { period: "2023-06", total_sales: 35000, order_count: 170 },
+                    {
+                        period: "2023-01",
+                        total_sales: 25000,
+                        order_count: 120,
+                        total_profit: 5000,
+                        total_quantity: 240,
+                        growth_rate: 0,
+                    },
+                    {
+                        period: "2023-02",
+                        total_sales: 28000,
+                        order_count: 135,
+                        total_profit: 5600,
+                        total_quantity: 270,
+                        growth_rate: 12,
+                    },
+                    {
+                        period: "2023-03",
+                        total_sales: 29500,
+                        order_count: 140,
+                        total_profit: 5900,
+                        total_quantity: 280,
+                        growth_rate: 5.36,
+                    },
+                    {
+                        period: "2023-04",
+                        total_sales: 31000,
+                        order_count: 150,
+                        total_profit: 6200,
+                        total_quantity: 300,
+                        growth_rate: 5.08,
+                    },
+                    {
+                        period: "2023-05",
+                        total_sales: 33000,
+                        order_count: 160,
+                        total_profit: 6600,
+                        total_quantity: 320,
+                        growth_rate: 6.45,
+                    },
+                    {
+                        period: "2023-06",
+                        total_sales: 35000,
+                        order_count: 170,
+                        total_profit: 7000,
+                        total_quantity: 340,
+                        growth_rate: 6.06,
+                    },
                 ];
                 updateSalesTrendChart(sampleData);
                 document.querySelector(".sales-chart-loader").style.display =
@@ -478,276 +572,74 @@ Dashboard - Dash Analytics
         document.querySelector(".demographics-chart-loader").style.display =
             "flex";
 
-        fetch("/api/customers/demographics/")
-            .then((response) => response.json())
+        fetch("/api/analytics/demographics/?period=1y")
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then((data) => {
-                updateDemographicsChart(data);
+                console.log("Demographics data received:", data);
+                updateDemographicsMetrics(data);
+                updateDemographicsChart(data.gender_distribution);
                 document.querySelector(
                     ".demographics-chart-loader"
                 ).style.display = "none";
             })
             .catch((error) => {
                 console.error("Error fetching demographics data:", error);
-
-                // Fallback to sample data
+                // Use sample data as fallback
                 const sampleData = {
-                    age_groups: {
-                        "18-24": 15,
-                        "25-34": 32,
-                        "35-44": 28,
-                        "45-54": 18,
-                        "55+": 7,
+                    gender_distribution: {
+                        male: 55,
+                        female: 45,
                     },
+                    average_age: 34,
+                    gender_ratio: 1.22,
+                    most_active_age_group: "25-34",
                 };
-                updateDemographicsChart(sampleData);
+                updateDemographicsMetrics(sampleData);
+                updateDemographicsChart(sampleData.gender_distribution);
                 document.querySelector(
                     ".demographics-chart-loader"
                 ).style.display = "none";
             });
     }
 
-    // Recent Orders section has been removed
-
-    // Update the sales trend chart
-    function updateSalesTrendChart(data) {
-        const ctx = document.getElementById("salesTrendChart").getContext("2d");
-        const isDarkMode = document.documentElement.classList.contains("dark");
-
-        const gridColor = isDarkMode
-            ? "rgba(255, 255, 255, 0.1)"
-            : "rgba(0, 0, 0, 0.05)";
-        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
-
-        const labels = data.map((item) => item.period);
-        const salesData = data.map((item) => item.total_sales);
-        const orderCountData = data.map((item) => item.order_count);
-
-        if (window.salesTrendChart instanceof Chart) {
-            window.salesTrendChart.destroy();
-        }
-
-        window.salesTrendChart = new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: "Sales",
-                        data: salesData,
-                        borderColor: "rgba(59, 130, 246, 1)",
-                        backgroundColor: "rgba(59, 130, 246, 0.1)",
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                    },
-                    {
-                        label: "Orders",
-                        data: orderCountData,
-                        borderColor: "rgba(16, 185, 129, 1)",
-                        backgroundColor: "transparent",
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        tension: 0.4,
-                        yAxisID: "y1",
-                    },
-                ],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: "index",
-                    intersect: false,
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            display: true,
-                            color: gridColor,
-                        },
-                        ticks: {
-                            callback: function (value) {
-                                return "$" + value.toLocaleString();
-                            },
-                            color: textColor,
-                        },
-                    },
-                    y1: {
-                        position: "right",
-                        beginAtZero: true,
-                        grid: {
-                            display: false,
-                        },
-                        ticks: {
-                            color: textColor,
-                        },
-                    },
-                    x: {
-                        grid: {
-                            display: false,
-                        },
-                        ticks: {
-                            color: textColor,
-                        },
-                    },
-                },
-                plugins: {
-                    legend: {
-                        position: "top",
-                        labels: {
-                            color: textColor,
-                        },
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                let label = context.dataset.label || "";
-                                if (label) {
-                                    label += ": ";
-                                }
-                                if (context.datasetIndex === 0) {
-                                    label += formatCurrency(context.parsed.y);
-                                } else {
-                                    label += context.parsed.y;
-                                }
-                                return label;
-                            },
-                        },
-                    },
-                },
-            },
-        });
+    // Update demographics metrics
+    function updateDemographicsMetrics(data) {
+        document.getElementById("genderRatioMetric").textContent =
+            data.gender_ratio.toFixed(2);
+        document.getElementById("activeAgeMetric").textContent =
+            data.most_active_age_group;
     }
 
-    // Update the top products chart
-    function updateTopProductsChart(data) {
-        const ctx = document
-            .getElementById("topProductsChart")
-            .getContext("2d");
-        const isDarkMode = document.documentElement.classList.contains("dark");
-
-        const gridColor = isDarkMode
-            ? "rgba(255, 255, 255, 0.1)"
-            : "rgba(0, 0, 0, 0.05)";
-        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
-
-        const labels = data.map((item) => item.product_name || item.name);
-        const quantities = data.map(
-            (item) => item.total_quantity || item.quantity
-        );
-
-        if (window.topProductsChart instanceof Chart) {
-            window.topProductsChart.destroy();
-        }
-
-        window.topProductsChart = new Chart(ctx, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: "Units Sold",
-                        data: quantities,
-                        backgroundColor: [
-                            "rgba(59, 130, 246, 0.6)",
-                            "rgba(16, 185, 129, 0.6)",
-                            "rgba(245, 158, 11, 0.6)",
-                            "rgba(239, 68, 68, 0.6)",
-                            "rgba(139, 92, 246, 0.6)",
-                        ],
-                        borderColor: [
-                            "rgba(59, 130, 246, 1)",
-                            "rgba(16, 185, 129, 1)",
-                            "rgba(245, 158, 11, 1)",
-                            "rgba(239, 68, 68, 1)",
-                            "rgba(139, 92, 246, 1)",
-                        ],
-                        borderWidth: 1,
-                    },
-                ],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            display: true,
-                            color: gridColor,
-                        },
-                        ticks: {
-                            color: textColor,
-                        },
-                    },
-                    x: {
-                        grid: {
-                            display: false,
-                        },
-                        ticks: {
-                            color: textColor,
-                        },
-                    },
-                },
-                plugins: {
-                    legend: {
-                        display: false,
-                    },
-                    tooltip: {
-                        callbacks: {
-                            title: function (tooltipItems) {
-                                return tooltipItems[0].label;
-                            },
-                            label: function (context) {
-                                return `Units Sold: ${context.parsed.y}`;
-                            },
-                        },
-                    },
-                },
-            },
-        });
-    }
-
-    // Update the demographics chart
+    // Update demographics chart
     function updateDemographicsChart(data) {
         const ctx = document
             .getElementById("demographicsChart")
             .getContext("2d");
         const isDarkMode = document.documentElement.classList.contains("dark");
-
         const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+        const borderColor = isDarkMode ? "#2d3748" : "#e2e8f0";
 
-        // Extract age group data
-        const labels = Object.keys(data.age_groups || {});
-        const ageData = Object.values(data.age_groups || {});
-
-        if (window.demographicsChart instanceof Chart) {
-            window.demographicsChart.destroy();
+        if (demographicsChart) {
+            demographicsChart.destroy();
         }
 
-        window.demographicsChart = new Chart(ctx, {
-            type: "pie",
+        demographicsChart = new Chart(ctx, {
+            type: "doughnut",
             data: {
-                labels: labels,
+                labels: ["Male", "Female"],
                 datasets: [
                     {
-                        label: "Age Distribution",
-                        data: ageData,
+                        data: [data.male, data.female],
                         backgroundColor: [
-                            "rgba(59, 130, 246, 0.6)", // blue
-                            "rgba(16, 185, 129, 0.6)", // green
-                            "rgba(245, 158, 11, 0.6)", // yellow
-                            "rgba(239, 68, 68, 0.6)", // red
-                            "rgba(139, 92, 246, 0.6)", // purple
+                            "rgba(14, 165, 233, 0.8)",
+                            "rgba(236, 72, 153, 0.8)",
                         ],
-                        borderColor: [
-                            "rgba(59, 130, 246, 1)",
-                            "rgba(16, 185, 129, 1)",
-                            "rgba(245, 158, 11, 1)",
-                            "rgba(239, 68, 68, 1)",
-                            "rgba(139, 92, 246, 1)",
-                        ],
+                        borderColor: ["rgb(14, 165, 233)", "rgb(236, 72, 153)"],
                         borderWidth: 1,
                     },
                 ],
@@ -778,6 +670,267 @@ Dashboard - Dash Analytics
         });
     }
 
+    // Update sales trend chart
+    function updateSalesTrendChart(data) {
+        const ctx = document.getElementById("salesTrendChart").getContext("2d");
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+        const gridColor = isDarkMode
+            ? "rgba(255,255,255,0.1)"
+            : "rgba(0,0,0,0.1)";
+
+        if (salesTrendChart) {
+            salesTrendChart.destroy();
+        }
+
+        salesTrendChart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: data.map((item) => formatDate(item.period)),
+                datasets: [
+                    {
+                        label: "Sales",
+                        data: data.map((item) => item.total_sales),
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        borderColor: "rgb(59, 130, 246)",
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        mode: "index",
+                        intersect: false,
+                        callbacks: {
+                            label: function (context) {
+                                return (
+                                    "Sales: " + formatCurrency(context.parsed.y)
+                                );
+                            },
+                        },
+                    },
+                },
+                interaction: {
+                    intersect: false,
+                    mode: "index",
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            color: textColor,
+                        },
+                    },
+                    y: {
+                        grid: {
+                            color: gridColor,
+                        },
+                        ticks: {
+                            color: textColor,
+                            callback: function (value) {
+                                return formatCurrency(value);
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    // Update top products chart
+    function updateTopProductsChart(data) {
+        const ctx = document
+            .getElementById("topProductsChart")
+            .getContext("2d");
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+        const gridColor = isDarkMode
+            ? "rgba(255,255,255,0.1)"
+            : "rgba(0,0,0,0.1)";
+
+        if (topProductsChart) {
+            topProductsChart.destroy();
+        }
+
+        topProductsChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: data.map((item) => item.product_name),
+                datasets: [
+                    {
+                        data: data.map((item) => item.total_quantity),
+                        backgroundColor: "rgba(34, 197, 94, 0.8)",
+                        borderColor: "rgb(34, 197, 94)",
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return `Quantity sold: ${context.parsed.x.toLocaleString()}`;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: gridColor,
+                        },
+                        ticks: {
+                            color: textColor,
+                            callback: function (value) {
+                                return value.toLocaleString();
+                            },
+                        },
+                    },
+                    y: {
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            color: textColor,
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    // Fetch geographical insights data
+    function fetchGeographicalData() {
+        document.querySelector(".geo-chart-loader").style.display = "flex";
+
+        fetch("/api/analytics/geographical/?period=last-month&region=all")
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then((data) => {
+                console.log("Geographical data received:", data);
+                updateGeographicalInsightsChart(data);
+                document.querySelector(".geo-chart-loader").style.display =
+                    "none";
+            })
+            .catch((error) => {
+                console.error("Error fetching geographical data:", error);
+                // Fallback to sample data
+                const sampleData = {
+                    cities: [
+                        {
+                            name: "New York",
+                            revenue: 1200000,
+                        },
+                        {
+                            name: "London",
+                            revenue: 980000,
+                        },
+                        {
+                            name: "Tokyo",
+                            revenue: 850000,
+                        },
+                    ],
+                };
+                updateGeographicalInsightsChart(sampleData);
+                document.querySelector(".geo-chart-loader").style.display =
+                    "none";
+            });
+    }
+
+    // Update geographical insights chart
+    function updateGeographicalInsightsChart(data) {
+        const ctx = document.getElementById("geoInsightsChart");
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
+        const gridColor = isDarkMode
+            ? "rgba(255,255,255,0.1)"
+            : "rgba(0,0,0,0.1)";
+
+        if (geoChart) {
+            geoChart.destroy();
+        }
+
+        // Sort cities by revenue and take top 5
+        const topCities = data.cities
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 5);
+
+        geoChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: topCities.map((city) => city.name),
+                datasets: [
+                    {
+                        label: "Revenue",
+                        data: topCities.map((city) => city.revenue),
+                        backgroundColor: "rgba(59, 130, 246, 0.8)",
+                        borderColor: "rgb(59, 130, 246)",
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const value = context.parsed.y;
+                                return `Revenue: $${value.toLocaleString()}`;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            color: textColor,
+                        },
+                    },
+                    y: {
+                        grid: {
+                            color: gridColor,
+                        },
+                        ticks: {
+                            color: textColor,
+                            callback: function (value) {
+                                return "$" + (value / 1000).toFixed(0) + "k";
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
     // Recent Orders table functionality has been removed
 
     // Initialize charts on page load
@@ -790,6 +943,7 @@ Dashboard - Dash Analytics
         fetchSalesTrendData("week");
         fetchTopProducts();
         fetchDemographicsData();
+        fetchGeographicalData();
 
         // Setup event listeners for period buttons
         document.querySelectorAll(".period-button").forEach((button) => {
@@ -823,6 +977,9 @@ Dashboard - Dash Analytics
                     }
                     if (window.demographicsChart) {
                         fetchDemographicsData();
+                    }
+                    if (window.topCitiesChart) {
+                        fetchGeographicalData();
                     }
                 }
             });

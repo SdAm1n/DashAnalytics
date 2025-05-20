@@ -3,6 +3,7 @@ from .views.data_upload_views import DataUploadView
 from .views.customer_views import CustomerViewSet
 from .views.product_views import ProductViewSet
 from .views.order_views import OrderViewSet
+from .views.analytics_views import AnalyticsViewSet
 from analytics.api_views import SalesTrendView, CustomerBehaviorView, DemographicsView
 from analytics.prediction_views import PredictionView
 from analytics.geographical_views import GeographicalView
@@ -14,9 +15,17 @@ urlpatterns = [
          DataUploadView.as_view(), name='upload-status'),
     path('customers/',
          CustomerViewSet.as_view({'get': 'list'}), name='customer-list'),
+    path('customers/demographics/',
+         DemographicsView.as_view(), name='customer-demographics-api'),
     path('products/',
          ProductViewSet.as_view({'get': 'list'}), name='product-list'),
+    path('products/top_sellers/',
+         ProductViewSet.as_view({'get': 'top_sellers'}), name='top-sellers'),
     path('orders/', OrderViewSet.as_view({'get': 'list'}), name='order-list'),
+    path('orders/sales_trend/',
+         SalesTrendView.as_view(), name='sales-trend-api'),
+    path('analytics/dashboard_summary/',
+         AnalyticsViewSet.as_view({'get': 'dashboard_summary'}), name='dashboard-summary'),
     path('analytics/sales_trend/', SalesTrendView.as_view(), name='sales-trend-api'),
     path('analytics/customer_behavior/',
          CustomerBehaviorView.as_view(), name='customer-behavior-api'),
