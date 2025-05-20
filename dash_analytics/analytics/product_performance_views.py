@@ -14,10 +14,16 @@ def product_performance_api(request):
     API endpoint for product performance page
     Fetches product performance metrics from the database
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     # Get query parameters for filtering
     period = request.GET.get('period', '1y')
     category = request.GET.get('category', 'all')
     db_alias = request.session.get('active_db', 'low_review_score_db')
+
+    logger.info(
+        f"Product Performance API request - Period: {period}, Category: {category}, DB: {db_alias}")
 
     # Calculate date range based on period
     end_date = datetime.now()
@@ -40,18 +46,43 @@ def product_performance_api(request):
     # Get list of product ids in filtered sales
     sales_list = list(sales_query)
     product_ids_in_sales = list(set([sale.product_id for sale in sales_list]))
+    logger.debug(
+        f"Found {len(product_ids_in_sales)} unique product IDs in sales")
 
     # Get corresponding Product objects
     products = Product.objects.using(db_alias).filter(
         product_id__in=product_ids_in_sales)
+    logger.debug(f"Retrieved {len(products)} products from database")
+
+    # Log all available categories for debugging
+    all_categories_debug = list(
+        set(p.category_name for p in products if p.category_name))
+    logger.debug(
+        f"Available categories before filtering: {all_categories_debug}")
 
     # If category is specified, filter by category
     if category and category != 'all':
+        # Log before filtering
+        logger.info(f"Filtering by category: '{category}'")
+        before_count = len(products)
+
+        # Improved case-insensitive comparison of category names
         products = [p for p in products if p.category_name and p.category_name.lower(
         ) == category.lower()]
-        product_ids_filtered = [p.product_id for p in products]
-        sales_list = [
-            s for s in sales_list if s.product_id in product_ids_filtered]
+
+        # Get the filtered product IDs
+        product_ids_filtered = [str(p.product_id) for p in products]
+
+        # Filter sales list by these product IDs
+        sales_list = [s for s in sales_list if str(
+            s.product_id) in product_ids_filtered]
+
+        # Log after filtering
+        logger.info(
+            f"After filtering: {len(products)} products (from {before_count})")
+        if len(products) == 0:
+            logger.warning(
+                f"No products found with category '{category}'. Available categories: {all_categories_debug}")
 
     # Dictionary to map product_id to product_name
     product_map = {str(p.product_id): {
@@ -258,7 +289,18 @@ def product_performance_api(request):
             item['trend'] = product_trends[product_id]
 
     # Get available categories for the filter dropdown
-    all_categories = list(set(p.category_name for p in products))
+    # Get all Product objects for retrieving all available categories
+    all_products = Product.objects.using(db_alias)
+    # Filter out None or empty categories and use set for uniqueness
+    all_categories = list(
+        set(p.category_name for p in all_products if p.category_name))
+    # Sort alphabetically for better user experience
     response_data['available_categories'] = sorted(all_categories)
+
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(
+        f"Returning {len(all_categories)} categories for filter dropdown")
+    logger.debug(f"Categories: {all_categories}")
 
     return Response(response_data)

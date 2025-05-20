@@ -1,5 +1,4 @@
-{% extends 'base.html' %} 
-{% block content %}
+{% extends 'base.html' %} {% load static %} {% block content %}
 <div class="container mx-auto py-8">
     <h1 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
         Product Performance Analysis
@@ -9,8 +8,15 @@
     <div class="mb-6 bg-white dark:bg-gray-800 shadow rounded-lg p-4">
         <div class="flex flex-wrap gap-4">
             <div class="w-full md:w-auto">
-                <label for="period-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time Period</label>
-                <select id="period-select" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2">
+                <label
+                    for="period-select"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Time Period</label
+                >
+                <select
+                    id="period-select"
+                    class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
+                >
                     <option value="7d">Last 7 Days</option>
                     <option value="30d">Last 30 Days</option>
                     <option value="90d">Last 90 Days</option>
@@ -19,10 +25,26 @@
                 </select>
             </div>
             <div class="w-full md:w-auto">
-                <label for="category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
-                <select id="category-filter" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2">
+                <label
+                    for="category-filter"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Category</label
+                >
+                <select
+                    id="category-filter"
+                    class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
+                >
                     <option value="all" selected>All Categories</option>
+                    <!-- Categories will be loaded dynamically -->
                 </select>
+            </div>
+            <div class="w-full md:w-auto flex items-end">
+                <button
+                    id="apply-filters"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition duration-150 ease-in-out"
+                >
+                    Apply Filters
+                </button>
             </div>
         </div>
     </div>
@@ -30,26 +52,44 @@
     <!-- Top Level Metrics -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Best Performing Product</h3>
+            <h3
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Best Performing Product
+            </h3>
             <div id="best-product-card" class="space-y-2">
                 <div class="animate-pulse">
-                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div
+                        class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"
+                    ></div>
                 </div>
             </div>
         </div>
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Top Category</h3>
+            <h3
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Top Category
+            </h3>
             <div id="top-category-card" class="space-y-2">
                 <div class="animate-pulse">
-                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div
+                        class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"
+                    ></div>
                 </div>
             </div>
         </div>
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Highest Volume Product</h3>
+            <h3
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
+                Highest Volume Product
+            </h3>
             <div id="top-volume-card" class="space-y-2">
                 <div class="animate-pulse">
-                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div
+                        class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"
+                    ></div>
                 </div>
             </div>
         </div>
@@ -59,7 +99,9 @@
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
         <!-- Best Selling Products Chart -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
                 Top 10 Best-Selling Products
             </h2>
             <div class="h-96">
@@ -69,7 +111,9 @@
 
         <!-- Category Performance Chart -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
                 Category Performance
             </h2>
             <div class="h-96">
@@ -79,7 +123,9 @@
 
         <!-- Volume Analysis Chart -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
                 Top Products by Volume
             </h2>
             <div class="h-96">
@@ -89,7 +135,9 @@
 
         <!-- Average Revenue Chart -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
+            <h2
+                class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4"
+            >
                 Top Products by Average Revenue
             </h2>
             <div class="h-96">
@@ -104,22 +152,56 @@
             Product Performance Details
         </h2>
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table
+                class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+            >
                 <thead>
                     <tr>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Product</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Category</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Units Sold</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Revenue</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Avg Price</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Trend</th>
+                        <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                        >
+                            Product
+                        </th>
+                        <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                        >
+                            Category
+                        </th>
+                        <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                        >
+                            Units Sold
+                        </th>
+                        <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                        >
+                            Revenue
+                        </th>
+                        <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                        >
+                            Avg Price
+                        </th>
+                        <th
+                            class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                        >
+                            Trend
+                        </th>
                     </tr>
                 </thead>
-                <tbody id="product-performance-table" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody
+                    id="product-performance-table"
+                    class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                >
                     <tr>
-                        <td colspan="6" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        <td
+                            colspan="6"
+                            class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
+                        >
                             <div class="flex items-center justify-center">
-                                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                                <div
+                                    class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"
+                                ></div>
                                 <span class="ml-2">Loading data...</span>
                             </div>
                         </td>
@@ -129,101 +211,195 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/error_chart_helper.js' %}"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         // Initialize charts
         let bestSellingChart, categoryChart, volumeChart, avgRevenueChart;
-        const isDarkMode = document.documentElement.classList.contains('dark');
-        const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-        const textColor = isDarkMode ? '#cbd5e0' : '#4a5568';
+        const isDarkMode = document.documentElement.classList.contains("dark");
+        const gridColor = isDarkMode
+            ? "rgba(255,255,255,0.1)"
+            : "rgba(0,0,0,0.05)";
+        const textColor = isDarkMode ? "#cbd5e0" : "#4a5568";
 
         // Load initial data
         loadProductPerformanceData();
 
         // Event listeners for filters
-        document.getElementById('period-select').addEventListener('change', loadProductPerformanceData);
-        document.getElementById('category-filter').addEventListener('change', loadProductPerformanceData);
-        
+        document
+            .getElementById("apply-filters")
+            .addEventListener("click", loadProductPerformanceData);
+
+        // Also allow pressing Enter in the filter selects to apply filters
+        document
+            .getElementById("period-select")
+            .addEventListener("keypress", function (e) {
+                if (e.key === "Enter") {
+                    loadProductPerformanceData();
+                }
+            });
+
+        document
+            .getElementById("category-filter")
+            .addEventListener("keypress", function (e) {
+                if (e.key === "Enter") {
+                    loadProductPerformanceData();
+                }
+            });
+
         // Function to update category filter options
         function updateCategoryFilter(categories) {
-            const categoryFilter = document.getElementById('category-filter');
+            const categoryFilter = document.getElementById("category-filter");
             const selectedValue = categoryFilter.value;
-            
-            // Clear existing options except "All Categories"
-            while (categoryFilter.options.length > 1) {
-                categoryFilter.remove(1);
-            }
-            
-            // Add new options
+
+            // Store all options before clearing to preserve "All Categories"
+            const allOption = categoryFilter.options[0].cloneNode(true);
+
+            // Clear all existing options
+            categoryFilter.innerHTML = "";
+
+            // Add back the "All Categories" option
+            categoryFilter.appendChild(allOption);
+
+            // Add new category options in alphabetical order
             if (categories && categories.length > 0) {
-                categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category;
-                    option.textContent = category;
-                    categoryFilter.appendChild(option);
+                // Sort categories alphabetically
+                categories.sort().forEach((category) => {
+                    if (category) {
+                        // Skip null or empty categories
+                        const option = document.createElement("option");
+                        option.value = category;
+                        option.textContent = category;
+                        categoryFilter.appendChild(option);
+                    }
                 });
             }
-            
+
             // Try to restore selected value if it exists in new options
-            if (selectedValue && selectedValue !== 'all') {
+            let selectedFound = false;
+            if (selectedValue && selectedValue !== "all") {
                 for (let i = 0; i < categoryFilter.options.length; i++) {
-                    if (categoryFilter.options[i].value === selectedValue) {
+                    if (
+                        categoryFilter.options[i].value.toLowerCase() ===
+                        selectedValue.toLowerCase()
+                    ) {
                         categoryFilter.selectedIndex = i;
+                        selectedFound = true;
                         break;
                     }
                 }
             }
+
+            // If selected value wasn't found, default to "All Categories"
+            if (!selectedFound) {
+                categoryFilter.selectedIndex = 0;
+            }
         }
 
         function loadProductPerformanceData() {
-            const period = document.getElementById('period-select').value;
-            const category = document.getElementById('category-filter').value;
-            
+            const period = document.getElementById("period-select").value;
+            const category = document.getElementById("category-filter").value;
+
+            console.log(
+                `Loading product performance data - Period: ${period}, Category: ${category}`
+            );
+
             // Show loading indicators
-            document.getElementById('best-product-card').innerHTML = '<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Best Performing Product</h3><div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
-            document.getElementById('top-category-card').innerHTML = '<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Top Category</h3><div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
-            document.getElementById('top-volume-card').innerHTML = '<h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Highest Volume Product</h3><div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
-            document.getElementById('product-performance-table').innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400"><div class="flex items-center justify-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div><span class="ml-2">Loading data...</span></div></td></tr>';
-            
-            fetch(`/api/analytics/product_performance/?period=${period}&category=${category}`)
-                .then(response => {
+            document.getElementById("best-product-card").innerHTML =
+                '<div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
+            document.getElementById("top-category-card").innerHTML =
+                '<div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
+            document.getElementById("top-volume-card").innerHTML =
+                '<div class="animate-pulse"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div></div>';
+            document.getElementById("product-performance-table").innerHTML =
+                '<tr><td colspan="6" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400"><div class="flex items-center justify-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div><span class="ml-2">Loading data...</span></div></td></tr>';
+
+            // Disable apply button while loading
+            const applyBtn = document.getElementById("apply-filters");
+            applyBtn.disabled = true;
+            applyBtn.classList.add("opacity-50", "cursor-not-allowed");
+            applyBtn.textContent = "Loading...";
+
+            // Encode category value to handle special characters
+            const encodedCategory = encodeURIComponent(category);
+
+            fetch(
+                `/api/analytics/product_performance/?period=${period}&category=${encodedCategory}`
+            )
+                .then((response) => {
                     if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+                        throw new Error(
+                            `HTTP error! Status: ${response.status}`
+                        );
                     }
                     return response.json();
                 })
-                .then(data => {
+                .then((data) => {
+                    console.log(
+                        `Received data with ${
+                            data.available_categories?.length || 0
+                        } categories`
+                    );
+
                     updateTopMetrics(data);
                     renderBestSellingChart(data.best_selling);
                     renderCategoryPerformanceChart(data.category_performance);
                     renderVolumeChart(data.volume_data);
                     renderAvgRevenueChart(data.avg_revenue);
                     renderProductTable(data.detailed_performance);
-                    
+
                     // Update category filter options
                     updateCategoryFilter(data.available_categories);
                 })
-                .catch(error => {
-                    console.error('Error loading data:', error);
+                .catch((error) => {
+                    console.error("Error loading data:", error);
                     // Show error message to user
-                    document.getElementById('product-performance-table').innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-sm text-red-500">Error loading data. Please try again later.</td></tr>';
+                    document.getElementById(
+                        "product-performance-table"
+                    ).innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-4 py-4 text-center text-sm text-red-500">
+                                Error loading data: ${error.message}. Please try again later.
+                            </td>
+                        </tr>
+                    `;
+
+                    // Reset charts to show error
+                    const errorMessage = "Failed to load data";
+                    renderErrorInCharts(errorMessage);
+                })
+                .finally(() => {
+                    // Re-enable apply button
+                    applyBtn.disabled = false;
+                    applyBtn.classList.remove(
+                        "opacity-50",
+                        "cursor-not-allowed"
+                    );
+                    applyBtn.textContent = "Apply Filters";
                 });
         }
 
         function updateTopMetrics(data) {
-            const bestProductCard = document.getElementById('best-product-card');
-            const topCategoryCard = document.getElementById('top-category-card');
-            const topVolumeCard = document.getElementById('top-volume-card');
+            const bestProductCard =
+                document.getElementById("best-product-card");
+            const topCategoryCard =
+                document.getElementById("top-category-card");
+            const topVolumeCard = document.getElementById("top-volume-card");
 
             // Handle best performing product
-            const bestProduct = data.best_product || { name: "No data", revenue: 0 };
+            const bestProduct = data.best_product || {
+                name: "No data",
+                revenue: 0,
+            };
             bestProductCard.innerHTML = `
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${bestProduct.name}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Revenue: $${Number(bestProduct.revenue).toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${
+                    bestProduct.name
+                }</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Revenue: $${Number(
+                    bestProduct.revenue
+                ).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
                 <div class="mt-2">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
                         Top selling product
@@ -232,10 +408,18 @@
             `;
 
             // Handle top category
-            const topCategory = data.top_category || { name: "No data", sales: 0, market_share: 0 };
+            const topCategory = data.top_category || {
+                name: "No data",
+                sales: 0,
+                market_share: 0,
+            };
             topCategoryCard.innerHTML = `
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${topCategory.name}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Total Sales: $${Number(topCategory.sales).toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${
+                    topCategory.name
+                }</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Sales: $${Number(
+                    topCategory.sales
+                ).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
                 <div class="mt-2">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
                         ${topCategory.market_share}% market share
@@ -244,10 +428,18 @@
             `;
 
             // Handle highest volume product
-            const topVolume = data.top_volume || { name: "No data", quantity: 0, percentage: 0 };
+            const topVolume = data.top_volume || {
+                name: "No data",
+                quantity: 0,
+                percentage: 0,
+            };
             topVolumeCard.innerHTML = `
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${topVolume.name}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Units Sold: ${Number(topVolume.quantity).toLocaleString()}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">${
+                    topVolume.name
+                }</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Units Sold: ${Number(
+                    topVolume.quantity
+                ).toLocaleString()}</p>
                 <div class="mt-2">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100">
                         ${topVolume.percentage}% of total volume
@@ -257,285 +449,338 @@
         }
 
         function renderBestSellingChart(data) {
-            const ctx = document.getElementById('bestSellingChart').getContext('2d');
-            
+            const ctx = document
+                .getElementById("bestSellingChart")
+                .getContext("2d");
+
             if (bestSellingChart) {
                 bestSellingChart.destroy();
             }
-            
+
             // Handle empty data
             if (!data || data.length === 0) {
-                ctx.font = '16px Arial';
+                ctx.font = "16px Arial";
                 ctx.fillStyle = textColor;
-                ctx.textAlign = 'center';
-                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                ctx.textAlign = "center";
+                ctx.fillText(
+                    "No data available",
+                    ctx.canvas.width / 2,
+                    ctx.canvas.height / 2
+                );
                 return;
             }
 
             bestSellingChart = new Chart(ctx, {
-                type: 'bar',
+                type: "bar",
                 data: {
-                    labels: data.map(item => item.name),
-                    datasets: [{
-                        label: 'Revenue',
-                        data: data.map(item => item.revenue),
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderColor: 'rgb(59, 130, 246)',
-                        borderWidth: 1
-                    }]
+                    labels: data.map((item) => item.name),
+                    datasets: [
+                        {
+                            label: "Revenue",
+                            data: data.map((item) => item.revenue),
+                            backgroundColor: "rgba(59, 130, 246, 0.8)",
+                            borderColor: "rgb(59, 130, 246)",
+                            borderWidth: 1,
+                        },
+                    ],
                 },
                 options: {
-                    indexAxis: 'y',
+                    indexAxis: "y",
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: false,
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return `Revenue: $${context.raw.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
-                                }
-                            }
-                        }
+                                label: function (context) {
+                                    return `Revenue: $${context.raw.toLocaleString(
+                                        undefined,
+                                        { maximumFractionDigits: 2 }
+                                    )}`;
+                                },
+                            },
+                        },
                     },
                     scales: {
                         x: {
                             grid: {
-                                color: gridColor
+                                color: gridColor,
                             },
                             ticks: {
                                 color: textColor,
-                                callback: value => '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0})
-                            }
+                                callback: (value) =>
+                                    "$" +
+                                    value.toLocaleString(undefined, {
+                                        maximumFractionDigits: 0,
+                                    }),
+                            },
                         },
                         y: {
                             grid: {
-                                display: false
+                                display: false,
                             },
                             ticks: {
-                                color: textColor
-                            }
-                        }
-                    }
-                }
+                                color: textColor,
+                            },
+                        },
+                    },
+                },
             });
         }
 
         function renderCategoryPerformanceChart(data) {
-            const ctx = document.getElementById('categoryPerformanceChart').getContext('2d');
-            
+            const ctx = document
+                .getElementById("categoryPerformanceChart")
+                .getContext("2d");
+
             if (categoryChart) {
                 categoryChart.destroy();
             }
 
             // Handle empty data
             if (!data || data.length === 0) {
-                ctx.font = '16px Arial';
+                ctx.font = "16px Arial";
                 ctx.fillStyle = textColor;
-                ctx.textAlign = 'center';
-                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                ctx.textAlign = "center";
+                ctx.fillText(
+                    "No data available",
+                    ctx.canvas.width / 2,
+                    ctx.canvas.height / 2
+                );
                 return;
             }
 
             categoryChart = new Chart(ctx, {
-                type: 'bar',
+                type: "bar",
                 data: {
-                    labels: data.map(item => item.category),
-                    datasets: [{
-                        label: 'Total Sales',
-                        data: data.map(item => item.total_sales),
-                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                        borderColor: 'rgb(16, 185, 129)',
-                        borderWidth: 1
-                    }]
+                    labels: data.map((item) => item.category),
+                    datasets: [
+                        {
+                            label: "Total Sales",
+                            data: data.map((item) => item.total_sales),
+                            backgroundColor: "rgba(16, 185, 129, 0.8)",
+                            borderColor: "rgb(16, 185, 129)",
+                            borderWidth: 1,
+                        },
+                    ],
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: false,
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     const item = data[context.dataIndex];
                                     return [
-                                        `Sales: $${context.raw.toLocaleString(undefined, {maximumFractionDigits: 2})}`,
+                                        `Sales: $${context.raw.toLocaleString(
+                                            undefined,
+                                            { maximumFractionDigits: 2 }
+                                        )}`,
                                         `Products: ${item.product_count}`,
-                                        `Units: ${item.total_quantity.toLocaleString()}`
+                                        `Units: ${item.total_quantity.toLocaleString()}`,
                                     ];
-                                }
-                            }
-                        }
+                                },
+                            },
+                        },
                     },
                     scales: {
                         x: {
                             grid: {
-                                display: false
+                                display: false,
                             },
                             ticks: {
                                 color: textColor,
                                 maxRotation: 45,
-                                minRotation: 45
-                            }
+                                minRotation: 45,
+                            },
                         },
                         y: {
                             grid: {
-                                color: gridColor
+                                color: gridColor,
                             },
                             ticks: {
                                 color: textColor,
-                                callback: value => '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0})
-                            }
-                        }
-                    }
-                }
+                                callback: (value) =>
+                                    "$" +
+                                    value.toLocaleString(undefined, {
+                                        maximumFractionDigits: 0,
+                                    }),
+                            },
+                        },
+                    },
+                },
             });
         }
 
         function renderVolumeChart(data) {
-            const ctx = document.getElementById('volumeChart').getContext('2d');
-            
+            const ctx = document.getElementById("volumeChart").getContext("2d");
+
             if (volumeChart) {
                 volumeChart.destroy();
             }
 
             // Handle empty data
             if (!data || data.length === 0) {
-                ctx.font = '16px Arial';
+                ctx.font = "16px Arial";
                 ctx.fillStyle = textColor;
-                ctx.textAlign = 'center';
-                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                ctx.textAlign = "center";
+                ctx.fillText(
+                    "No data available",
+                    ctx.canvas.width / 2,
+                    ctx.canvas.height / 2
+                );
                 return;
             }
 
             volumeChart = new Chart(ctx, {
-                type: 'bar',
+                type: "bar",
                 data: {
-                    labels: data.map(item => item.name),
-                    datasets: [{
-                        label: 'Units Sold',
-                        data: data.map(item => item.quantity),
-                        backgroundColor: 'rgba(45, 212, 191, 0.8)',
-                        borderColor: 'rgb(45, 212, 191)',
-                        borderWidth: 1
-                    }]
+                    labels: data.map((item) => item.name),
+                    datasets: [
+                        {
+                            label: "Units Sold",
+                            data: data.map((item) => item.quantity),
+                            backgroundColor: "rgba(45, 212, 191, 0.8)",
+                            borderColor: "rgb(45, 212, 191)",
+                            borderWidth: 1,
+                        },
+                    ],
                 },
                 options: {
-                    indexAxis: 'y',
+                    indexAxis: "y",
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: false,
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     return `Units Sold: ${context.raw.toLocaleString()}`;
-                                }
-                            }
-                        }
+                                },
+                            },
+                        },
                     },
                     scales: {
                         x: {
                             grid: {
-                                color: gridColor
+                                color: gridColor,
                             },
                             ticks: {
                                 color: textColor,
-                                callback: value => value.toLocaleString()
-                            }
+                                callback: (value) => value.toLocaleString(),
+                            },
                         },
                         y: {
                             grid: {
-                                display: false
+                                display: false,
                             },
                             ticks: {
-                                color: textColor
-                            }
-                        }
-                    }
-                }
+                                color: textColor,
+                            },
+                        },
+                    },
+                },
             });
         }
 
         function renderAvgRevenueChart(data) {
-            const ctx = document.getElementById('avgRevenueChart').getContext('2d');
-            
+            const ctx = document
+                .getElementById("avgRevenueChart")
+                .getContext("2d");
+
             if (avgRevenueChart) {
                 avgRevenueChart.destroy();
             }
 
             // Handle empty data
             if (!data || data.length === 0) {
-                ctx.font = '16px Arial';
+                ctx.font = "16px Arial";
                 ctx.fillStyle = textColor;
-                ctx.textAlign = 'center';
-                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                ctx.textAlign = "center";
+                ctx.fillText(
+                    "No data available",
+                    ctx.canvas.width / 2,
+                    ctx.canvas.height / 2
+                );
                 return;
             }
 
             avgRevenueChart = new Chart(ctx, {
-                type: 'bar',
+                type: "bar",
                 data: {
-                    labels: data.map(item => item.name),
-                    datasets: [{
-                        label: 'Average Revenue',
-                        data: data.map(item => item.avg_revenue),
-                        backgroundColor: 'rgba(192, 132, 252, 0.8)',
-                        borderColor: 'rgb(192, 132, 252)',
-                        borderWidth: 1
-                    }]
+                    labels: data.map((item) => item.name),
+                    datasets: [
+                        {
+                            label: "Average Revenue",
+                            data: data.map((item) => item.avg_revenue),
+                            backgroundColor: "rgba(192, 132, 252, 0.8)",
+                            borderColor: "rgb(192, 132, 252)",
+                            borderWidth: 1,
+                        },
+                    ],
                 },
                 options: {
-                    indexAxis: 'y',
+                    indexAxis: "y",
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: false,
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return `Avg Revenue: $${context.raw.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
-                                }
-                            }
-                        }
+                                label: function (context) {
+                                    return `Avg Revenue: $${context.raw.toLocaleString(
+                                        undefined,
+                                        { maximumFractionDigits: 2 }
+                                    )}`;
+                                },
+                            },
+                        },
                     },
                     scales: {
                         x: {
                             grid: {
-                                color: gridColor
+                                color: gridColor,
                             },
                             ticks: {
                                 color: textColor,
-                                callback: value => '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0})
-                            }
+                                callback: (value) =>
+                                    "$" +
+                                    value.toLocaleString(undefined, {
+                                        maximumFractionDigits: 0,
+                                    }),
+                            },
                         },
                         y: {
                             grid: {
-                                display: false
+                                display: false,
                             },
                             ticks: {
-                                color: textColor
-                            }
-                        }
-                    }
-                }
+                                color: textColor,
+                            },
+                        },
+                    },
+                },
             });
         }
 
         function renderProductTable(data) {
-            const tableBody = document.getElementById('product-performance-table');
-            tableBody.innerHTML = '';
+            const tableBody = document.getElementById(
+                "product-performance-table"
+            );
+            tableBody.innerHTML = "";
 
             if (!data || data.length === 0) {
-                const row = document.createElement('tr');
+                const row = document.createElement("tr");
                 row.innerHTML = `
                     <td colspan="6" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                         No product data available for the selected filters.
@@ -545,19 +790,22 @@
                 return;
             }
 
-            data.forEach(product => {
-                const row = document.createElement('tr');
-                
+            data.forEach((product) => {
+                const row = document.createElement("tr");
+
                 // Handle trend display
-                let trendDisplay = '';
+                let trendDisplay = "";
                 if (product.trend !== undefined && product.trend !== null) {
-                    const trendColor = product.trend >= 0 ? 'text-green-600' : 'text-red-600';
-                    const trendArrow = product.trend >= 0 ? '↑' : '↓';
-                    trendDisplay = `<span class="${trendColor}">${trendArrow} ${Math.abs(product.trend)}%</span>`;
+                    const trendColor =
+                        product.trend >= 0 ? "text-green-600" : "text-red-600";
+                    const trendArrow = product.trend >= 0 ? "↑" : "↓";
+                    trendDisplay = `<span class="${trendColor}">${trendArrow} ${Math.abs(
+                        product.trend
+                    )}%</span>`;
                 } else {
                     trendDisplay = '<span class="text-gray-400">N/A</span>';
                 }
-                
+
                 row.innerHTML = `
                     <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
                         ${product.name}
@@ -569,22 +817,58 @@
                         ${Number(product.units_sold).toLocaleString()}
                     </td>
                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        $${Number(product.revenue).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                        $${Number(product.revenue).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                        })}
                     </td>
                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        $${Number(product.avg_price).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                        $${Number(product.avg_price).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                        })}
                     </td>
                     <td class="px-4 py-2 whitespace-nowrap text-sm">
                         ${trendDisplay}
                     </td>
                 `;
-                
+
                 tableBody.appendChild(row);
             });
         }
 
+        // Function to display error message in charts when data cannot be loaded
+        function renderErrorInCharts(errorMessage) {
+            const chartCanvases = [
+                "bestSellingChart",
+                "categoryPerformanceChart",
+                "volumeChart",
+                "avgRevenueChart",
+            ];
+
+            chartCanvases.forEach((canvasId) => {
+                const ctx = document.getElementById(canvasId).getContext("2d");
+                // Clear any existing chart
+                if (window[canvasId]) {
+                    window[canvasId].destroy();
+                }
+
+                // Clear canvas
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                // Display error message
+                ctx.font = "16px Arial";
+                ctx.fillStyle = isDarkMode ? "#cbd5e0" : "#4a5568";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(
+                    errorMessage,
+                    ctx.canvas.width / 2,
+                    ctx.canvas.height / 2
+                );
+            });
+        }
+
         // Theme change listener
-        document.addEventListener('theme-changed', function() {
+        document.addEventListener("theme-changed", function () {
             loadProductPerformanceData();
         });
     });
